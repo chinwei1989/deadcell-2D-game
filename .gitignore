@@ -1,0 +1,15 @@
+# Godot cache and generated files
+.godot/
+
+# Builds
+build/
+
+# Secrets — never commit
+*.keystore
+*.jks
+export_credentials.cfg
+.env
+
+# OS
+.DS_Store
+Thumbs.db
