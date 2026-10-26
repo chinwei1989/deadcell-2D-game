@@ -1290,11 +1290,12 @@ in age ratings where asked (no chat reduces requirements).
 - [x] The Ronin (hero) built and posed in Blender: 21 animations synced to the frame data
 - [x] Combat choreography (stepping combo hits, leaping finisher, attack magnetism, air hang time) and combo counter with ranks
 - [x] Burning amber katana: longer blade, flames, swing fire, smoke, embers, firelight; fiery trails and hit fire bursts
-- [x] Sound: 31 synthesized effects hooked to every action, "Neon Rain" music loop, rain ambience
+- [x] Sound: 34 synthesized effects hooked to every action, "Neon Rain" music loop, rain ambience
 - [x] Ninja movement: low leaning sprint (12 frames, speed-matched), crouched sneak, forward-roll dodge, double-jump front flip, scarf follow-through
 - [x] Level art: building facades with windows/pipes/signs and alleys, floor props, foreground silhouettes
 - [x] Lighting & atmosphere: dark ambient, lamp/neon/warning lights with light pools, normal-mapped characters, hero key light, fog, vignette, color grading
 - [x] Dead Cells-style effects: glowing blade trails along the real blade, sparks, cut marks, hit lights, bloom, damage numbers, afterimages, dust, slam ring, enemy death bursts with oil
+- [x] Enemy reactions: flinch (wind-ups and attacks are armored), recoil kick/squash/tilt, white flash then amber burn; blade kills cut machines in two (glowing cut, tumbling halves, scrap pop), other kills throw them smoking; the Linked collapse
 - [ ] Demo build (see MIXAMO_DOWNLOADS.md for the human characters): Warden boss, 2 areas with random rooms, blade pickups, title/end screens, sounds, web + Windows + Mac builds
 - [ ] **2-player co-op on LAN** with lag simulation
 

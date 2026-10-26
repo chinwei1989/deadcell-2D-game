@@ -9,7 +9,7 @@ const SOUNDS: Array[StringName] = [
 	&"hit_heavy", &"execute", &"parry", &"guard", &"deflect", &"draw_charge", &"draw_strike",
 	&"slam_dive", &"slam_land", &"hurt", &"death", &"machine_death", &"laser", &"drone_charge",
 	&"hound_windup", &"linked_grab", &"cut_link", &"freed", &"focus_on", &"focus_off",
-	&"rank_up", &"ember_burst",
+	&"rank_up", &"ember_burst", &"slice", &"clank", &"scrap_pop",
 ]
 const POOL_SIZE := 16
 const BUSES: Array[String] = ["Music", "SFX", "Ambience"]

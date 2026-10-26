@@ -190,6 +190,14 @@ def sfx() -> dict[str, np.ndarray]:
                          for i, f in enumerate([880.0, 1108.7, 1318.5])]) * 0.4
     s["ember_burst"] = mix(*[np.concatenate([np.zeros(int(SR * RNG.uniform(0, 0.25))), crunch(0.03, 5000, 0.008)])
                              for _ in range(9)]) * 0.5
+    # Sounds added later restore the noise generator afterwards, so the loops below don't change.
+    rng_state = RNG.bit_generator.state
+    s["slice"] = mix(whoosh(0.22, 5200, 1400) * 0.6, metal([3100, 4700, 6900, 9300], 0.5, 0.1) * 0.6,
+                     crunch(0.15, 4200, 0.04) * 0.7, bandpass(noise(0.5), 3000, 8000) * decay(0.5, 0.18) * 0.35)
+    s["clank"] = mix(metal([410, 730, 1150, 1890], 0.3, 0.05) * 0.7, thump(0.15, 150, 60, 0.04))
+    s["scrap_pop"] = mix(crunch(0.3, 3000, 0.07), thump(0.3, 140, 40, 0.08) * 0.6,
+                         metal([1700, 2900], 0.2, 0.04) * 0.2)
+    RNG.bit_generator.state = rng_state
     return {name: fade_edges(normalize(sound)) for name, sound in s.items()}
 
 

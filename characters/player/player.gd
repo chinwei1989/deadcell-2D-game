@@ -978,7 +978,7 @@ func _on_blade_hit(hurtbox: HurtboxComponent, info: DamageInfo) -> void:
 		Feel.impact(hit_point, direction, 0.7 if heavy else 0.3, color)
 	if fire_blade:
 		Feel.embers(hit_point, 10 if heavy or info.executed else 5)
-		Feel.fire_burst(hit_point, 1.0 if info.executed else (0.6 if heavy else 0.25))
+		Feel.fire_burst(hit_point, 0.5 if info.executed else (0.6 if heavy else 0.25))
 	Feel.damage_number(hurtbox.global_position + Vector2(0.0, -24.0), info.amount, info.is_crit or info.executed)
 	if info.killed:
 		focus.refill(tuning.focus_refill_kill)

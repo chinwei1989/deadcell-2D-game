@@ -19,3 +19,5 @@ lunge_speed = 160.0
 lunge_hop = 60.0
 attack_knockback = Vector2(140, -110)
 parried_posture_damage = 30.0
+is_machine = false
+corpse_time = 2.0

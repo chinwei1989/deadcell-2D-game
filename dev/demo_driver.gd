@@ -16,6 +16,8 @@ extends Node
 ##   slam   step off a platform and slam down onto the dummy below
 ##   ninja  sprint, double-jump front flip, dodge roll, short sneak steps
 ##   linked walk at a Linked Citizen; the bot parries its grab and cuts the link
+##   brawl  walk at the Hound, slash it whenever it isn't attacking (flinches, recoil) and
+##          roll away from its lunges, until it staggers; then execute it (cut in two)
 ## Set the DEMO_TRACE environment variable to also print the player's position and state.
 
 ## [time in seconds, action, pressed]
@@ -32,6 +34,7 @@ const TIMELINES: Dictionary = {
 		[5.7, &"slash", true], [5.75, &"slash", false],
 	],
 	"hound": [],
+	"brawl": [],
 	"linked": [],
 	"drone": [],
 	"ledge": [
@@ -58,12 +61,13 @@ const TIMELINES: Dictionary = {
 ## Map marker (see the legend in test_arena.gd) where the player starts, if not at P.
 const STARTS: Dictionary = {
 	"hound": &"b",
+	"brawl": &"b",
 	"drone": &"c",
 	"ledge": &"d",
 	"slam": &"e",
 	"linked": &"f",
 }
-const BOT_SCENARIOS: Array[String] = ["hound", "drone", "linked"]
+const BOT_SCENARIOS: Array[String] = ["hound", "drone", "linked", "brawl"]
 ## Seconds before the bot can press the same action again.
 const BOT_COOLDOWN := 0.3
 
@@ -87,6 +91,7 @@ func _ready() -> void:
 	Events.projectile_deflected.connect(func(_p: Node, perfect: bool) -> void: _log("deflect (perfect=%s)" % perfect))
 	Events.enemy_executed.connect(func(e: Node, _by: Node) -> void: _log("executed %s" % e.name))
 	Events.enemy_killed.connect(func(e: Node) -> void: _log("killed %s" % e.name))
+	Events.enemy_damaged.connect(func(e: Node, _i: DamageInfo) -> void: _log("hit %s (%s)" % [e.name, e.get(&"state")]))
 	Events.posture_broken.connect(func(e: Node) -> void: _log("posture broken: %s" % e.name))
 	Events.linked_freed.connect(func(e: Node, _by: Node) -> void: _log("freed %s" % e.name))
 	Events.player_hit.connect(func(_p: Node, _i: DamageInfo) -> void: _log("player hit"))
@@ -144,7 +149,13 @@ func _bot() -> void:
 		# script only count as "just pressed" on the next physics frame, so reacting to the
 		# lunge itself is one frame too late against fast grabs.)
 		var winding_up := enemy.state == &"windup" and enemy.state_past_frames(enemy.data.windup_frames - 3)
-		if (winding_up or enemy.state == &"lunge") and distance < 56.0:
+		if _scenario == "brawl" and winding_up and distance < 80.0:
+			steer = -side # No parries here: roll away from the lunge.
+			_tap(&"dodge")
+		elif _scenario == "brawl" and enemy.state != &"staggered" and distance < 66.0 and not enemy.is_armored():
+			steer = side
+			_tap(&"slash")
+		elif (winding_up or enemy.state == &"lunge") and distance < 56.0:
 			steer = side
 			_tap(&"parry")
 		elif enemy.state == &"staggered" and distance < 56.0:
@@ -162,7 +173,7 @@ func _bot() -> void:
 			_tap(&"slash")
 	if hold_interact:
 		steer = 0.0 # Stand still while cutting the link.
-	elif steer == 0.0 and _scenario in ["hound", "linked"] and nearest > 50.0 and nearest < 1000.0:
+	elif steer == 0.0 and _scenario in ["hound", "linked", "brawl"] and nearest > 50.0 and nearest < 1000.0:
 		steer = 1.0
 	_set_pressed(&"interact", hold_interact)
 	_set_pressed(&"move_right", steer > 0.0)

@@ -13,3 +13,4 @@ aggro_range = 220.0
 windup_frames = 36
 projectile_speed = 160.0
 fire_cooldown = 1.4
+flinch_frames = 10

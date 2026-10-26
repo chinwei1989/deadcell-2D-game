@@ -41,6 +41,18 @@ extends Resource
 ## Seconds the enemy is stunned after being parried (if its posture doesn't break).
 @export var parried_stun: float = 0.8
 
+@export_group("Reactions")
+## Hit stun after a hit that doesn't break posture or kill: the enemy recoils, helpless.
+## 0 = never flinches (heavy enemies).
+@export var flinch_frames: int = 14
+## False = attacks are armored: hits during a wind-up or an attack don't interrupt it
+## (players must still read and answer the telegraph).
+@export var flinch_during_attacks: bool = false
+## Machines are cut in two by blade kills and burst into scrap; people collapse.
+@export var is_machine: bool = true
+## Seconds the remains stay before they're cleared.
+@export var corpse_time: float = 1.2
+
 @export_group("Ranged")
 @export var projectile_speed: float = 160.0
 @export var fire_cooldown: float = 1.6

@@ -22,7 +22,7 @@ godot --headless --path . -s res://tests/run_tests.gd
 # Run the game headless for 10 game seconds to catch runtime errors
 godot --headless --path . --fixed-fps 60 --quit-after 600
 
-# Bot/scripted playtests with an event log (scenarios: combo, hound, drone, ledge, slam)
+# Bot/scripted playtests with an event log (scenarios: combo, hound, drone, ledge, slam, linked, ninja, brawl)
 godot --headless --path . --fixed-fps 60 --quit-after 480 -- --demo=hound
 
 # Same, recorded to PNG frames you can look at
@@ -165,6 +165,8 @@ Add or extend a demo scenario in `dev/demo_driver.gd` for new combat features.
 | `game/fx/sprite_sheet.gd` | `SpriteSheet`: builds SpriteFrames from `art/sprites/<name>.png` + `.json` |
 | `game/fx/sword_trail.gd` | `SwordTrail`: additive glowing sweep along the real blade (from the sheet's `blade_base`/`blade_tip` tracks); `heat` rises with the combo |
 | `game/fx/fire_blade.gd` | `FireBlade`: the burning katana (smoke, flames licking up the blade, swing fire left in the air while attacking, embers, molten core, flickering firelight); `Player.fire_blade` toggles it |
+| `game/fx/corpse_piece.gd` | `CorpsePiece`: remains of a dead machine (RigidBody2D, visual only): `slice()` cuts a sprite frame in two along the killing swing, `throw()` tumbles it whole; blink + scrap pop after `EnemyData.corpse_time` |
+| `game/fx/slice.gdshader` | Draws one side of a cut sprite frame with a glowing, cooling cut edge (frame region passed as a uniform) |
 | `game/fx/flash.gdshader` | Sprite tint shader: hit flash, wind-up blink, stagger tint |
 | `tools/blender/` | `sprite_render.py` (shared helpers) + `models/<name>.py` (one script per character: model, poses, render) |
 | `tools/art/` | Art tools: `palette.gpl`, `pixelize.py`, `generate_sandbox_art.py` (Python + Pillow, venv in `tools/art/.venv`) |
@@ -241,6 +243,19 @@ targeting (`target`, `distance_to_target()`), damage, execution and death. Give 
 enemy an `EnemyData` `.tres` (wind-up ≥ 18 frames; a test enforces it), then give it a
 letter in the map legend (`_spawn_entities()` in `test_arena.gd`) and place it in the map.
 
+Hit reactions and deaths live in the base, tuned per enemy in `EnemyData` (group Reactions):
+- Every hit: white flash, then an amber "burn" tint; the `Visual` node kicks back along the
+  knockback, squashes, tilts and jitters (`REACT_*`, `_animate_reaction()`). The base owns
+  `visual.position/scale/rotation`, so subclasses must not set them while alive.
+- Flinch: a hit that doesn't kill or break posture puts the enemy in `&"hurt"` for
+  `flinch_frames` (0 = never). Attacks are armored: no flinch while `is_armored()`
+  (telegraphing or attack hitbox live) unless `flinch_during_attacks`. The rule is the pure
+  `EnemyBase.should_flinch()` (unit tested).
+- Death: `is_machine` enemies burst into scrap; a blade kill (`can_execute`) cuts the sprite
+  in two along the swing (`CorpsePiece.slice`), anything else throws it whole, smoking.
+  The pieces hold still for the hit freeze, then fly. People (`is_machine = false`, the
+  Linked) fall away from the blow and fade: never cut them up.
+
 ### Art (PLAN.md section 30)
 
 The art budget is $0: free tools + local AI image models + code. Image AI is only used for
@@ -302,18 +317,21 @@ quick-draw; slam; executions; Focus slow-mo; Resolve pips; hit freeze, flash, sh
 Enemies: Hound (parry), Patrol Drone (deflect), Linked Citizen (cut the link; Mercy record in
 `Profile.data["mercy"]`), training dummy. Multi-level sandbox map
 (`game/arena/maps/sandbox.txt`) drawn with a code-generated tileset, a 3-layer AI-generated
-parallax city backdrop and rain. 39 unit tests; bot scenarios `combo`, `hound`, `drone`,
-`ledge`, `slam`, `linked` all show the expected events.
+parallax city backdrop and rain. Enemies flinch, recoil and burn on hits; machines are cut
+in two by blade kills. 53 unit tests; bot scenarios `combo`, `hound`, `drone`, `ledge`,
+`slam`, `linked`, `ninja`, `brawl` all show the expected events.
 
 Known limitations: Focus is solo-only (uses `Engine.time_scale`); ledges can only be
-grabbed on `WORLD` geometry, not one-way platforms; no particles or sounds yet.
+grabbed on `WORLD` geometry, not one-way platforms; enemies have no hurt pose of their own
+(`hurt` reuses the stagger animation, or idle, plus the code recoil).
 
 ## Next tasks, in order (PLAN.md section 36)
 
 Do these one at a time; each ends with passing tests and a demo log or recording.
 
-1. **Kill feedback**: kill freeze-frame (PLAN.md section 16), hit sparks with pooled
-   `CPUParticles2D`, placeholder sounds through an `Audio` autoload.
+1. **UI polish**: pixel font, clean HUD, remove debug text (state label, control hints).
+   Sparks, sounds, hit reactions and deaths are done; pooling the effect particles and a
+   kill freeze-frame (PLAN.md section 16) are still open.
 2. **Touch controls v1** (PLAN.md section 15.4) as a `CanvasLayer` scene in `ui/touch/`
    that presses the same input actions (floating stick, Slash/Jump/Dodge/Parry/Focus).
 3. **LAN co-op**: spawn one Player per peer with `MultiplayerSpawner`, sync with
