@@ -151,6 +151,8 @@ def render_animations(name: str, frame_size: tuple, origin_px: tuple, animations
                       normals: bool = True) -> None:
     """animations: {anim_name: {"frames": n, "fps": f, "loop": bool, "pose": fn(t)}} where
     pose(t) sets the model for t in [0, 1). Writes frames + a meta.json for make_spritesheet.py.
+    An optional "phases": [wind-up, strike, recovery] frame counts is passed through, so the
+    game can show each part of an attack during the matching frame-data phase.
 
     tracks: {track_name: object}. The pixel position of each object is recorded for every
     frame (e.g. the blade's hilt and tip, so the game can draw trails along the real blade)."""
@@ -175,6 +177,9 @@ def render_animations(name: str, frame_size: tuple, origin_px: tuple, animations
                 recorded[track].append([round(origin_px[0] + world.x * pixels_per_unit, 2),
                                         round(origin_px[1] - world.z * pixels_per_unit, 2)])
         meta["animations"][anim] = {"frames": spec["frames"], "fps": spec["fps"], "loop": spec["loop"]}
+        if "phases" in spec:
+            assert sum(spec["phases"]) == spec["frames"], f"{anim}: phases must add up to frames"
+            meta["animations"][anim]["phases"] = list(spec["phases"])
         if recorded:
             meta["animations"][anim]["tracks"] = recorded
     (out / "meta.json").write_text(json.dumps(meta, indent=2))

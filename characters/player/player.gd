@@ -301,18 +301,32 @@ func _animate() -> void:
 ## follow-through poses. Map each to its frame-data phase so the strike pose shows exactly
 ## during the active frames, whatever the attack's timing.
 func _slash_frame(count: int) -> int:
-	var startup := FrameTime.seconds(tuning.slash_startup_frames[_slash_index])
-	var active := FrameTime.seconds(tuning.slash_active_frames[_slash_index])
-	var recovery := FrameTime.seconds(tuning.slash_recovery_frames[_slash_index])
-	var windup_frames := 1 if count <= 4 else 2
-	var strike_frames := 2 if count >= 6 else 1
-	var recover_frames := count - windup_frames - strike_frames
-	if _state_time <= startup:
-		return mini(int(_state_time / startup * windup_frames), windup_frames - 1)
-	if _state_time <= startup + active:
-		return windup_frames + mini(int((_state_time - startup) / active * strike_frames), strike_frames - 1)
-	var t := clampf((_state_time - startup - active) / recovery, 0.0, 0.999)
-	return windup_frames + strike_frames + int(t * recover_frames)
+	var durations: Array[float] = [
+		FrameTime.seconds(tuning.slash_startup_frames[_slash_index]),
+		FrameTime.seconds(tuning.slash_active_frames[_slash_index]),
+		FrameTime.seconds(tuning.slash_recovery_frames[_slash_index]),
+	]
+	var counts := SpriteSheet.phases(sprite_sheet, _sprite.animation)
+	if counts.size() != 3:
+		# Art without phases: 1-2 wind-up frames, 1-2 strike frames, the rest recovery.
+		var windup := 1 if count <= 4 else 2
+		var strike := 2 if count >= 6 else 1
+		counts = PackedInt32Array([windup, strike, count - windup - strike])
+	return phase_frame(_state_time, durations, counts)
+
+
+## Which frame to show `time` seconds into an attack whose parts last `durations` seconds
+## and are drawn with `counts` frames each: frames within a part are spread evenly over it.
+static func phase_frame(time: float, durations: Array[float], counts: PackedInt32Array) -> int:
+	var first := 0
+	for i in counts.size():
+		var last_part := i == counts.size() - 1
+		if time <= durations[i] or last_part:
+			var t := clampf(time / durations[i], 0.0, 0.999) if durations[i] > 0.0 else 0.999
+			return first + mini(int(t * counts[i]), counts[i] - 1)
+		time -= durations[i]
+		first += counts[i]
+	return maxi(first - 1, 0)
 
 
 ## Sends the blade's current base and tip (world space) to the sword trail while an attack

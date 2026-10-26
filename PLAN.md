@@ -1287,7 +1287,7 @@ in age ratings where asked (no chat reduces requirements).
 - [x] First free art: code-generated tileset with auto-tiling, rain, `pixelize.py`
 - [x] AI parallax backdrop (3 layers, local SDXL, $0)
 - [x] Blender 3D-to-pixel pipeline; Hound and Patrol Drone as animated sprites
-- [x] The Ronin (hero) built and posed in Blender: 21 animations synced to the frame data
+- [x] The Ronin (hero) built and posed in Blender: 23 animations synced to the frame data
 - [x] Combat choreography (stepping combo hits, leaping finisher, attack magnetism, air hang time) and combo counter with ranks
 - [x] Burning amber katana: longer blade, flames, swing fire, smoke, embers, firelight; fiery trails and hit fire bursts
 - [x] Sound: 34 synthesized effects hooked to every action, "Neon Rain" music loop, rain ambience
@@ -1296,6 +1296,7 @@ in age ratings where asked (no chat reduces requirements).
 - [x] Lighting & atmosphere: dark ambient, lamp/neon/warning lights with light pools, normal-mapped characters, hero key light, fog, vignette, color grading
 - [x] Dead Cells-style effects: glowing blade trails along the real blade, sparks, cut marks, hit lights, bloom, damage numbers, afterimages, dust, slam ring, enemy death bursts with oil
 - [x] Enemy reactions: flinch (wind-ups and attacks are armored), recoil kick/squash/tilt, white flash then amber burn; blade kills cut machines in two (glowing cut, tumbling halves, scrap pop), other kills throw them smoking; the Linked collapse
+- [x] Smoother attacks: slashes, air slashes and quick-draw rebuilt from key poses with in-betweens (9–12 frames, arcs over the top, anticipation and overshoot), phases matched to the frame data
 - [x] UI: original pixel font ("Last Edge", drawn in code), clean HUD (vitals plate, combo counter), fading controls panel (H/F1), no debug text
 - [ ] Demo build (see MIXAMO_DOWNLOADS.md for the human characters): Warden boss, 2 areas with random rooms, blade pickups, title/end screens, sounds, web + Windows + Mac builds
 - [ ] **2-player co-op on LAN** with lag simulation

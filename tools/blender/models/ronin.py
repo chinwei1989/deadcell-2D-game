@@ -130,6 +130,44 @@ def frames_of(*poses: dict):
     return lambda t: apply(**poses[min(int(t * len(poses) + 1e-6), len(poses) - 1)])
 
 
+def sword(total: float, sh: float, el: float) -> dict:
+    """Sword-arm angles for keyed(). Unlike blade(), these are interpolated as written, so
+    use unwrapped angles to pick the way round: e.g. back (90) → up (180) → forward (270)
+    swings over the top, while 90 → 0 → -90 would sweep under. The wrist is solved per frame."""
+    return {"total": total, "near_sh": sh, "near_el": el}
+
+
+def ease(u: float, kind: str) -> float:
+    if kind == "in":  # Accelerate: a blade gathering speed.
+        return u * u
+    if kind == "out":  # Decelerate: settling, or coiling up.
+        return 1 - (1 - u) ** 2
+    if kind == "smooth":
+        return u * u * (3 - 2 * u)
+    return u
+
+
+def keyed(*keys: tuple):
+    """An animation interpolated between key poses: keys are (frame, pose, ease) with pose made
+    with sword() plus any DEFAULT joints; ease ("in", "out", "smooth", "linear") shapes the
+    motion from the previous key to this one. Frames between keys are in-betweens, so the
+    blade sweeps through its whole arc instead of jumping. The last key sets the frame count."""
+    frame_count = keys[-1][0] + 1
+
+    def pose(t: float) -> None:
+        i = min(round(t * frame_count), frame_count - 1)
+        b = next(k for k in keys if k[0] >= i)
+        a = keys[keys.index(b) - 1] if keys.index(b) > 0 else b
+        u = 0.0 if b[0] == a[0] else ease((i - a[0]) / (b[0] - a[0]), b[2])
+        start, end = {**DEFAULT, **a[1]}, {**DEFAULT, **b[1]}
+        p = {k: start[k] + (end[k] - start[k]) * u for k in end}
+        p["wrist"] = p.pop("total") - p["near_sh"] - p["near_el"]
+        apply(**p)
+
+    pose.frames = frame_count
+    return pose
+
+
 # Animations ----------------------------------------------------------------------------
 
 def idle(t: float) -> None:
@@ -208,46 +246,70 @@ hang = frames_of(
          far_sh=-170, far_el=0, coat=3, scarf=14, scarf_wave=0.5),
 )
 STANCE = dict(near_hip=-30, near_knee=22, far_hip=28, far_knee=10)
-slash1 = frames_of(
-    dict(lean=2, **STANCE, **blade(120, 45, -10), far_sh=-20, far_el=-70, coat=8, scarf=40),
-    dict(lean=-4, **STANCE, **blade(150, 60, -5), far_sh=-10, far_el=-60, coat=10, scarf=45),
-    dict(lean=22, **STANCE, **blade(-95, -95, 0), far_sh=30, far_el=-30, coat=25, coat_front=20, scarf=70),
-    dict(lean=24, **STANCE, **blade(-40, -60, -10), far_sh=35, far_el=-30, coat=30, coat_front=20, scarf=75),
-    dict(lean=12, **STANCE, **blade(-120, -45, -40), far_sh=-10, far_el=-70, coat=15, scarf=50),
+DEEP = dict(near_hip=-46, near_knee=48, far_hip=41, far_knee=21)
+TUCK = dict(near_hip=-40, near_knee=70, far_hip=-10, far_knee=50)
+# Attacks: 3 parts, rendered with in-betweens (see keyed()); the "phases" in the render list
+# give the frame count of each part: wind-up (coil, slow in), strike (the blade sweeps the
+# whole arc at an even speed), recovery (overshoot, then settle back toward guard).
+
+# Diagonal cut from over the shoulder: arms swing back → up → forward over the top.
+slash1 = keyed(
+    (0, dict(lean=2, **STANCE, **sword(120, 45, -10), far_sh=-20, far_el=-70, coat=8, scarf=40), "linear"),
+    (2, dict(lean=-5, **STANCE, **sword(152, 62, -5), far_sh=-8, far_el=-60, coat=10, scarf=45), "out"),
+    (3, dict(lean=6, **STANCE, **sword(205, 150, -10), far_sh=0, far_el=-50, coat=14, scarf=52), "linear"),
+    (5, dict(lean=24, **STANCE, **sword(320, 300, -10), far_sh=35, far_el=-30, coat=30, coat_front=20,
+             scarf=75), "linear"),
+    (6, dict(lean=26, **STANCE, **sword(334, 306, -8), far_sh=36, far_el=-30, coat=32, coat_front=22,
+             scarf=82, scarf_wave=0.2), "out"),
+    (9, dict(lean=12, **STANCE, **sword(240, 315, -40), far_sh=-10, far_el=-70, coat=15, scarf=50,
+             scarf_wave=0.6), "smooth"),
 )
-slash2 = frames_of(
-    dict(lean=16, **STANCE, **blade(-35, -50, -10), far_sh=20, far_el=-40, coat=18, scarf=55),
-    dict(lean=18, **STANCE, **blade(-25, -45, -5), far_sh=25, far_el=-40, coat=20, scarf=58),
-    dict(lean=8, **STANCE, **blade(-155, -150, -20), far_sh=-40, far_el=-30, coat=12, scarf=70),
-    dict(lean=2, **STANCE, **blade(165, -170, -10), far_sh=-50, far_el=-20, coat=8, scarf=72),
-    dict(lean=8, **STANCE, **blade(-130, -60, -30), far_sh=-15, far_el=-70, coat=10, scarf=50),
+# Rising cut: the blade comes up from low forward, through forward, to straight up and past.
+slash2 = keyed(
+    (0, dict(lean=12, **STANCE, **sword(-60, -55, -30), far_sh=-10, far_el=-60, coat=12, scarf=50), "linear"),
+    (2, dict(lean=18, **STANCE, **sword(-25, -45, -5), far_sh=25, far_el=-40, coat=20, scarf=58), "out"),
+    (3, dict(lean=14, **STANCE, **sword(-72, -82, -10), far_sh=0, far_el=-36, coat=17, scarf=62), "linear"),
+    (5, dict(lean=2, **STANCE, **sword(-195, -170, -10), far_sh=-50, far_el=-20, coat=8, scarf=72), "linear"),
+    (6, dict(lean=0, **STANCE, **sword(-206, -176, -8), far_sh=-52, far_el=-20, coat=6, scarf=76,
+             scarf_wave=0.2), "out"),
+    (9, dict(lean=8, **STANCE, **sword(-130, -60, -30), far_sh=-15, far_el=-70, coat=10, scarf=50,
+             scarf_wave=0.6), "smooth"),
 )
-slash3 = frames_of(
-    dict(lean=-8, z=0.02, **STANCE, **blade(170, -150, -10), far_sh=-150, far_el=-20, coat=5, scarf=40),
-    dict(lean=-12, z=0.04, **STANCE, **blade(178, -165, -5), far_sh=-165, far_el=-10, coat=0, scarf=35),
-    dict(lean=30, z=-0.12, near_hip=-45, near_knee=45, far_hip=40, far_knee=20, **blade(-80, -80, -5),
-         far_sh=-70, far_el=-20, coat=40, coat_front=30, scarf=95),
-    dict(lean=34, z=-0.16, near_hip=-48, near_knee=50, far_hip=42, far_knee=22, **blade(-20, -40, -5),
-         far_sh=-40, far_el=-30, coat=45, coat_front=35, scarf=100),
-    dict(lean=26, z=-0.12, near_hip=-45, near_knee=45, far_hip=40, far_knee=20, **blade(-25, -40, -5),
-         far_sh=-35, far_el=-30, coat=35, coat_front=25, scarf=80, scarf_wave=0.3),
-    dict(lean=12, z=-0.04, **STANCE, **blade(-110, -45, -40), far_sh=-15, far_el=-70, coat=15, scarf=50),
+# Finisher: a leaping overhead chop, landing in a deep stance.
+slash3 = keyed(
+    (0, dict(lean=-2, **STANCE, **sword(150, -120, -20), far_sh=-120, far_el=-30, coat=6, scarf=40), "linear"),
+    (3, dict(lean=-14, z=0.05, **STANCE, **sword(182, -168, -5), far_sh=-168, far_el=-8, coat=0, scarf=34),
+     "out"),
+    (4, dict(lean=4, z=0.02, **STANCE, **sword(220, -140, -5), far_sh=-130, far_el=-10, coat=10, scarf=50),
+     "linear"),
+    (6, dict(lean=34, z=-0.16, **DEEP, **sword(340, -40, -5), far_sh=-40, far_el=-30, coat=45, coat_front=35,
+             scarf=100), "linear"),
+    (7, dict(lean=30, z=-0.14, **DEEP, **sword(336, -40, -5), far_sh=-38, far_el=-30, coat=40,
+             coat_front=30, scarf=96, scarf_wave=0.2), "out"),
+    (11, dict(lean=12, z=-0.04, **STANCE, **sword(250, -45, -40), far_sh=-15, far_el=-70, coat=15, scarf=50,
+              scarf_wave=0.7), "smooth"),
 )
-slash_up = frames_of(
-    dict(lean=8, **STANCE, **blade(-60, -40, -20), far_sh=-10, far_el=-60, coat=10, scarf=45),
-    dict(lean=-6, z=0.03, **STANCE, **blade(178, -175, 0), far_sh=-60, far_el=-30, coat=15, scarf=80),
-    dict(lean=-8, z=0.03, **STANCE, **blade(150, -170, -10), far_sh=-70, far_el=-20, coat=18, scarf=85),
-    dict(lean=6, **STANCE, **blade(-130, -60, -30), far_sh=-20, far_el=-70, coat=10, scarf=50),
+slash_up = keyed(
+    (0, dict(lean=8, **STANCE, **sword(-50, -35, -20), far_sh=-10, far_el=-60, coat=10, scarf=45), "linear"),
+    (1, dict(lean=12, z=-0.03, **STANCE, **sword(-30, -25, -10), far_sh=0, far_el=-55, coat=12, scarf=48),
+     "out"),
+    (2, dict(lean=4, **STANCE, **sword(-95, -105, -10), far_sh=-30, far_el=-45, coat=12, scarf=60), "linear"),
+    (4, dict(lean=-8, z=0.03, **STANCE, **sword(-200, -178, -5), far_sh=-65, far_el=-25, coat=16, scarf=82),
+     "linear"),
+    (5, dict(lean=-9, z=0.03, **STANCE, **sword(-214, -176, -10), far_sh=-70, far_el=-20, coat=18, scarf=86,
+             scarf_wave=0.2), "out"),
+    (8, dict(lean=6, **STANCE, **sword(-130, -60, -30), far_sh=-20, far_el=-70, coat=10, scarf=50,
+             scarf_wave=0.6), "smooth"),
 )
-slash_down = frames_of(
-    dict(lean=-4, near_hip=-40, near_knee=70, far_hip=-10, far_knee=50, **blade(-150, -120, -10),
-         far_sh=-60, far_el=-30, coat=20, scarf=120),
-    dict(lean=14, near_hip=-40, near_knee=70, far_hip=-10, far_knee=50, **blade(-5, -20, 0), far_sh=-10,
-         far_el=-40, coat=30, scarf=130),
-    dict(lean=16, near_hip=-38, near_knee=68, far_hip=-12, far_knee=52, **blade(30, 0, 5), far_sh=10,
-         far_el=-40, coat=32, scarf=135),
-    dict(lean=6, near_hip=-30, near_knee=60, far_hip=-10, far_knee=45, **blade(-90, -60, -20), far_sh=-30,
-         far_el=-50, coat=25, scarf=120),
+slash_down = keyed(
+    (0, dict(lean=0, **TUCK, **sword(-120, -90, -20), far_sh=-40, far_el=-40, coat=20, scarf=118), "linear"),
+    (1, dict(lean=-6, **TUCK, **sword(-160, -130, -10), far_sh=-60, far_el=-30, coat=18, scarf=122), "out"),
+    (2, dict(lean=4, **TUCK, **sword(-105, -88, -5), far_sh=-35, far_el=-35, coat=24, scarf=126), "linear"),
+    (4, dict(lean=16, **TUCK, **sword(22, -4, 5), far_sh=8, far_el=-40, coat=32, scarf=134), "linear"),
+    (5, dict(lean=16, **TUCK, **sword(32, 2, 5), far_sh=10, far_el=-40, coat=32, scarf=135,
+             scarf_wave=0.2), "out"),
+    (8, dict(lean=6, near_hip=-30, near_knee=60, far_hip=-10, far_knee=45, **sword(-90, -60, -20), far_sh=-30,
+             far_el=-50, coat=25, scarf=120, scarf_wave=0.6), "smooth"),
 )
 PARRY_POSE = dict(lean=6, z=-0.04, near_hip=-25, near_knee=30, far_hip=25, far_knee=20,
                   **blade(-178, -70, -60), far_sh=-75, far_el=-55, coat=8, scarf=40)
@@ -265,12 +327,18 @@ draw_charge = frames_of(
     DRAW_POSE,
     dict(DRAW_POSE, z=-0.17, scarf=64, scarf_wave=0.5),
 )
-draw_strike = frames_of(
-    dict(lean=45, z=-0.22, near_hip=-70, near_knee=30, far_hip=60, far_knee=20, **blade(-92, -92, 0),
-         far_sh=60, far_el=-10, coat=70, coat_front=55, scarf=110),
-    dict(lean=40, z=-0.2, near_hip=-65, near_knee=35, far_hip=58, far_knee=25, **blade(110, 60, 10),
-         far_sh=55, far_el=-20, coat=72, coat_front=55, scarf=115),
-    dict(lean=15, z=-0.06, **STANCE, **blade(100, 45, 5), far_sh=10, far_el=-60, coat=30, scarf=70),
+LUNGE = dict(near_hip=-70, near_knee=30, far_hip=60, far_knee=20)
+# Quick-draw: the blade leaves the sheath low and forward, cuts through, and keeps rising
+# over the top to end behind the dashing hero.
+draw_strike = keyed(
+    (0, dict(lean=45, z=-0.22, **LUNGE, **sword(-55, -60, 0), far_sh=60, far_el=-10, coat=66, coat_front=50,
+             scarf=105), "linear"),
+    (1, dict(lean=45, z=-0.22, **LUNGE, **sword(-95, -92, 0), far_sh=60, far_el=-10, coat=70, coat_front=55,
+             scarf=110), "linear"),
+    (3, dict(lean=40, z=-0.2, near_hip=-65, near_knee=35, far_hip=58, far_knee=25, **sword(-250, -300, 10),
+             far_sh=55, far_el=-20, coat=72, coat_front=55, scarf=115), "out"),
+    (6, dict(lean=15, z=-0.06, **STANCE, **sword(-260, -315, 5), far_sh=10, far_el=-60, coat=30, scarf=70,
+             scarf_wave=0.6), "smooth"),
 )
 slam = frames_of(
     dict(lean=20, near_hip=-70, near_knee=100, far_hip=-50, far_knee=90, **blade(5, -10, 0), far_sh=-20,
@@ -323,15 +391,15 @@ sr.render_animations(
         "hang": {"frames": 2, "fps": 4, "loop": True, "pose": hang},
         "dodge": {"frames": 8, "fps": 24, "loop": False, "pose": dodge},
         "flip": {"frames": 8, "fps": 22, "loop": False, "pose": flip},
-        "slash1": {"frames": 5, "fps": 18, "loop": False, "pose": slash1},
-        "slash2": {"frames": 5, "fps": 18, "loop": False, "pose": slash2},
-        "slash3": {"frames": 6, "fps": 16, "loop": False, "pose": slash3},
-        "slash_up": {"frames": 4, "fps": 16, "loop": False, "pose": slash_up},
-        "slash_down": {"frames": 4, "fps": 16, "loop": False, "pose": slash_down},
+        "slash1": {"frames": slash1.frames, "fps": 18, "loop": False, "pose": slash1, "phases": (4, 2, 4)},
+        "slash2": {"frames": slash2.frames, "fps": 18, "loop": False, "pose": slash2, "phases": (3, 3, 4)},
+        "slash3": {"frames": slash3.frames, "fps": 16, "loop": False, "pose": slash3, "phases": (5, 2, 5)},
+        "slash_up": {"frames": slash_up.frames, "fps": 16, "loop": False, "pose": slash_up, "phases": (2, 3, 4)},
+        "slash_down": {"frames": slash_down.frames, "fps": 16, "loop": False, "pose": slash_down, "phases": (2, 3, 4)},
         "parry": {"frames": 2, "fps": 16, "loop": False, "pose": parry},
         "guard": {"frames": 2, "fps": 4, "loop": True, "pose": guard},
         "draw_charge": {"frames": 2, "fps": 8, "loop": True, "pose": draw_charge},
-        "draw_strike": {"frames": 3, "fps": 14, "loop": False, "pose": draw_strike},
+        "draw_strike": {"frames": draw_strike.frames, "fps": 14, "loop": False, "pose": draw_strike},
         "slam": {"frames": 2, "fps": 12, "loop": True, "pose": slam},
         "slam_land": {"frames": 2, "fps": 10, "loop": False, "pose": slam_land},
         "cut_link": {"frames": 2, "fps": 4, "loop": True, "pose": cut_link},

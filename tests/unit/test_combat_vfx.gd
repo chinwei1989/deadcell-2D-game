@@ -71,3 +71,25 @@ func test_sprite_frames_show_their_own_region() -> void:
 	if first and later:
 		assert_true(first.region != later.region, "each frame shows a different part of the sheet")
 	assert_true(SpriteSheet.material(RONIN).get_shader_parameter(&"use_normals"), "normal map applied by the shader")
+
+
+func test_attack_phases_map_to_frame_data() -> void:
+	var durations: Array[float] = [0.1, 0.05, 0.2]
+	var counts := PackedInt32Array([3, 3, 4])
+	assert_eq(Player.phase_frame(0.0, durations, counts), 0)
+	assert_eq(Player.phase_frame(0.099, durations, counts), 2, "last wind-up frame at the end of startup")
+	assert_eq(Player.phase_frame(0.101, durations, counts), 3, "strike starts with the active frames")
+	assert_eq(Player.phase_frame(0.149, durations, counts), 5)
+	assert_eq(Player.phase_frame(0.16, durations, counts), 6, "recovery after the active frames")
+	assert_eq(Player.phase_frame(5.0, durations, counts), 9, "holds the last frame")
+
+
+func test_ronin_attacks_have_phases() -> void:
+	for anim: StringName in [&"slash1", &"slash2", &"slash3", &"slash_up", &"slash_down"]:
+		var counts := SpriteSheet.phases("res://art/sprites/ronin.png", anim)
+		assert_eq(counts.size(), 3, "%s has wind-up/strike/recovery" % anim)
+		var total := 0
+		for c in counts:
+			total += c
+		assert_eq(total, SpriteSheet.frames("res://art/sprites/ronin.png").get_frame_count(anim), "%s phases cover every frame" % anim)
+	SpriteSheet.clear_cache()

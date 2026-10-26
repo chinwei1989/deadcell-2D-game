@@ -213,7 +213,13 @@ The hero is drawn with the Ronin sprite sheet (`tools/blender/models/ronin.py`, 
 joint angles; see the docstring there for the angle conventions). `_animate()` picks the
 animation from the state. Timed states set the frame from the state's progress, and slashes
 map wind-up / strike / follow-through poses onto startup / active / recovery frames
-(`_slash_frame()`), so the art always matches the frame data. After changing frame data or
+(`_slash_frame()` → `Player.phase_frame()`), so the art always matches the frame data.
+Attacks are built from key poses with in-betweens (`keyed()` + `sword()` in `ronin.py`;
+9–12 frames each). Write sword angles unwrapped so the arc goes the right way round
+(back 90 → up 180 → forward 270 swings over the top). Each attack's render entry has
+`"phases": (wind-up, strike, recovery)` frame counts, saved in the sheet JSON
+(`SpriteSheet.phases()`): keep only the frames where the blade crosses the hit zone in the
+strike part, or hits register while the art still shows the wind-up. After changing frame data or
 poses, re-render and record the `combo` demo to check the strike pose lines up with hits.
 
 **Combat choreography and effects (Dead Cells-style, keep them readable):**
@@ -340,8 +346,7 @@ grabbed on `WORLD` geometry, not one-way platforms; enemies have no hurt pose of
 
 Do these one at a time; each ends with passing tests and a demo log or recording.
 
-1. **Smoother attack animations** (more in-between frames for the slashes), then the
-   **demo build** (PLAN.md section 36: Warden boss, 2 areas, title/end screens, exports).
+1. The **demo build** (PLAN.md section 36: Warden boss, 2 areas, title/end screens, exports).
    Still open from kill feedback: pooling the effect particles and a kill freeze-frame
    (PLAN.md section 16).
 2. **Touch controls v1** (PLAN.md section 15.4) as a `CanvasLayer` scene in `ui/touch/`

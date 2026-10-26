@@ -55,6 +55,16 @@ static func track(png_path: String, animation: StringName, track_name: StringNam
 	return points
 
 
+## Frame counts of an attack's parts [wind-up, strike, recovery], or empty if the
+## animation has none (see "phases" in tools/blender/sprite_render.py).
+static func phases(png_path: String, animation: StringName) -> PackedInt32Array:
+	var spec: Dictionary = _meta(png_path)["animations"].get(String(animation), {})
+	var counts := PackedInt32Array()
+	for count: float in spec.get("phases", []):
+		counts.append(int(count))
+	return counts
+
+
 static func _meta(png_path: String) -> Dictionary:
 	if not _meta_cache.has(png_path):
 		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(png_path.get_basename() + ".json"))
