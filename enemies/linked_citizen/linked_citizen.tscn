@@ -83,5 +83,5 @@ offset_right = 50.0
 offset_bottom = -50.0
 theme_override_colors/font_color = Color(0.949, 0.647, 0.255, 1)
 theme_override_font_sizes/font_size = 8
-text = "Hold R: cut the link"
+text = "HOLD R  CUT THE LINK"
 horizontal_alignment = 1

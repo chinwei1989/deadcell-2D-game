@@ -81,10 +81,8 @@ func damage_number(at: Vector2, amount: float, crit: bool) -> void:
 		return
 	var label := Label.new()
 	label.text = str(roundi(amount))
-	label.add_theme_font_size_override("font_size", 14 if crit else 10)
+	label.add_theme_font_size_override("font_size", 16 if crit else 8) # Pixel font: multiples of 8.
 	label.add_theme_color_override("font_color", AMBER * (GLOW if crit else 1.2) if crit else WHITE_HOT)
-	label.add_theme_color_override("font_outline_color", Color("0b1620"))
-	label.add_theme_constant_override("outline_size", 4)
 	label.z_index = 10
 	label.position = at + Vector2(randf_range(-6.0, 6.0) - 10.0, 0.0)
 	var scene := get_tree().current_scene

@@ -1,0 +1,10 @@
+[gd_resource type="Theme" format=3]
+
+[ext_resource type="FontFile" path="res://art/fonts/last_edge.fnt" id="1_font"]
+
+[resource]
+default_font = ExtResource("1_font")
+default_font_size = 8
+Label/colors/font_shadow_color = Color(0.043, 0.086, 0.125, 1)
+Label/constants/shadow_offset_x = 1
+Label/constants/shadow_offset_y = 1

@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://c0fu24o6e0mla"
+path="res://.godot/imported/last_edge.fnt-7421aa290bdd995e977898e5daf1f803.fontdata"
+
+[deps]
+
+source_file="res://art/fonts/last_edge.fnt"
+dest_files=["res://.godot/imported/last_edge.fnt-7421aa290bdd995e977898e5daf1f803.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=1

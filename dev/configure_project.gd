@@ -47,6 +47,7 @@ func _display() -> void:
 	_put("display/window/stretch/aspect", "expand")
 	_put("display/window/stretch/scale_mode", "integer")
 	_put("display/window/handheld/orientation", 4) # Sensor landscape.
+	_put("gui/theme/custom", "res://ui/theme/game_theme.tres") # Pixel font for every Label.
 
 
 func _rendering() -> void:
@@ -90,6 +91,7 @@ func _input_map() -> void:
 	_action("emote", [_key(KEY_T)])
 	_action("map", [_key(KEY_TAB), _pad(JOY_BUTTON_BACK)])
 	_action("pause", [_key(KEY_ESCAPE), _pad(JOY_BUTTON_START)])
+	_action("help", [_key(KEY_F1), _key(KEY_H)])
 
 
 func _put(setting: String, value: Variant) -> void:

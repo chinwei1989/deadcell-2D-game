@@ -10,9 +10,11 @@ extends EnemyBase
 const FREED_COLOR := Color("f2a541")
 const IMPLANT_OFF_COLOR := Color("5c6f7a")
 const FREED_WALK_TIME := 1.6
+const CUT_BAR_WIDTH := 30.0
 
 var _cut_progress: float = 0.0
 var _being_cut: bool = false
+var _cut_fill: ColorRect
 
 @onready var _implant: Polygon2D = $Visual/Implant
 @onready var _prompt: Label = $Prompt
@@ -22,6 +24,17 @@ func _ready() -> void:
 	super()
 	add_to_group(&"linked")
 	_prompt.visible = false
+	_prompt.z_index = 20 # Above the blade's fire.
+	var bar := ColorRect.new()
+	bar.color = Color("0b1620")
+	bar.position = Vector2((_prompt.size.x - CUT_BAR_WIDTH) / 2.0 - 1.0, _prompt.size.y + 1.0)
+	bar.size = Vector2(CUT_BAR_WIDTH + 2.0, 4.0)
+	_prompt.add_child(bar)
+	_cut_fill = ColorRect.new()
+	_cut_fill.color = FREED_COLOR
+	_cut_fill.position = Vector2(1, 1)
+	_cut_fill.size = Vector2(0.0, 2.0)
+	bar.add_child(_cut_fill)
 
 
 func _ai(delta: float) -> void:
@@ -71,10 +84,8 @@ func _process(delta: float) -> void:
 		visual.modulate.a = clampf(1.0 - (state_time - FREED_WALK_TIME * 0.5) / (FREED_WALK_TIME * 0.5), 0.0, 1.0)
 		return
 	_prompt.visible = state == &"staggered"
-	if _being_cut:
-		_prompt.text = "Cutting... %d%%" % roundi(_cut_progress * 100.0)
-	else:
-		_prompt.text = "Hold R: cut the link"
+	_prompt.text = "CUTTING THE LINK" if _being_cut else "HOLD R  CUT THE LINK"
+	_cut_fill.size.x = roundf(CUT_BAR_WIDTH * _cut_progress) if _being_cut else 0.0
 	_being_cut = false
 
 
