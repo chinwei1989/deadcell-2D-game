@@ -28,6 +28,12 @@ func is_staggered() -> bool:
 	return _stagger_left > 0.0
 
 
+## Keeps the entity staggered for at least `seconds` more (e.g. while its link is cut).
+func extend_stagger(seconds: float) -> void:
+	if is_staggered():
+		_stagger_left = maxf(_stagger_left, seconds)
+
+
 func add(amount: float) -> void:
 	if is_staggered() or amount <= 0.0:
 		return

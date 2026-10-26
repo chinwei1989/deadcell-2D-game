@@ -1,0 +1,27 @@
+GIMP Palette
+Name: LAST EDGE
+Columns: 8
+# The one palette for all game art (PLAN.md sections 17.1 and 30.4).
+# Cold = HALCYON's world. Warm/hot = humans and the blade. Neutrals for metal and text.
+ 11  22  32	void
+ 15  28  37	deep
+ 18  34  46	shadow
+ 23  44  52	dark steel
+ 31  58  68	steel
+ 36  67  78	steel light
+ 45  85  96	slate
+ 63 122 128	teal dim
+ 79 209 197	teal
+141 232 223	teal light
+232 251 255	white
+ 92 111 122	gray dark
+138 161 173	gray
+195 208 214	gray light
+ 30  16  18	ember dark
+ 58  30  26	rust dark
+107  47  34	rust
+180  81  46	copper
+214  69  69	red
+255  90  54	hot
+242 165  65	amber
+255 211 138	amber light

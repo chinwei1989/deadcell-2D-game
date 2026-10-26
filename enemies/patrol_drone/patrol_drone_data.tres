@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://enemies/base/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+max_health = 8.0
+max_posture = 0.0
+uses_gravity = false
+move_speed = 40.0
+acceleration = 300.0
+aggro_range = 220.0
+windup_frames = 36
+projectile_speed = 160.0
+fire_cooldown = 1.4

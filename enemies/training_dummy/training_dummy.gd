@@ -1,7 +1,8 @@
 class_name TrainingDummy
 extends Node2D
 ## Practice target for tuning combat: flashes on hits, shows posture, staggers when
-## posture breaks, and resets instead of dying. Origin is at its feet.
+## posture breaks (a blade hit then executes it), and resets instead of dying.
+## Origin is at its feet.
 
 const BASE_COLOR := Color("8aa1ad")
 const FLASH_COLOR := Color.WHITE
@@ -24,6 +25,7 @@ var _body_kick: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
+	add_to_group(&"targets")
 	_hurtbox.received.connect(_on_hit)
 	_posture.broken.connect(func() -> void: Events.posture_broken.emit(self))
 	_health.died.connect(_on_died)
@@ -50,9 +52,15 @@ func _process(delta: float) -> void:
 func _on_hit(info: DamageInfo) -> void:
 	if _health.is_dead():
 		return
+	if info.can_execute and _posture.is_staggered():
+		info.executed = true
+		info.killed = true
+		Events.enemy_executed.emit(self, info.source)
+		_health.damage(_health.current)
+		return
 	var multiplier := STAGGER_DAMAGE_MULTIPLIER if _posture.is_staggered() else 1.0
 	_posture.add(info.posture)
-	_health.damage(info.amount * multiplier)
+	info.killed = _health.damage(info.amount * multiplier)
 	_flash_left = FLASH_TIME
 	_body_kick = info.knockback.normalized() * 3.0
 	Events.enemy_damaged.emit(self, info)

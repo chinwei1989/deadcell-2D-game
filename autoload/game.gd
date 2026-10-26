@@ -12,6 +12,11 @@ const SCENES: Dictionary = {
 var mode: Mode = Mode.BOOT
 
 
+func _exit_tree() -> void:
+	SpriteSheet.clear_cache()
+	LevelLight.clear_cache()
+
+
 func goto(scene_id: StringName, new_mode: Mode) -> void:
 	assert(SCENES.has(scene_id), "Unknown scene id: %s" % scene_id)
 	mode = new_mode

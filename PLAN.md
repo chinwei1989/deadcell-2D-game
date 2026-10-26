@@ -12,7 +12,9 @@
 > "LAST EDGE", "HALCYON" and all character names are working names, to be checked for conflicts in M0.
 > The earlier 3D Unity platformer plan is kept in `PLAN-unity-3d-platformer.md`.
 >
-> **Status (2026-10-25):** M0 done on the Mac; M1 started (offline movement + slash combo).
+> **Status (2026-10-26):** M0 done on the Mac; M1 offline combat done (movement, slash, parry,
+> deflect, quick-draw, slam, executions, Focus, Hound, Patrol Drone) in a multi-level sandbox map.
+> Next: Linked Citizen, touch, LAN co-op.
 > How to work on the code: **AGENTS.md**.
 
 ---
@@ -52,7 +54,7 @@
 27. [Code architecture](#27-code-architecture)
 28. [Networking and online services](#28-networking-and-online-services)
 29. [Procedural level generation](#29-procedural-level-generation)
-30. [The 3D-to-pixel art pipeline](#30-the-3d-to-pixel-art-pipeline)
+30. [Art pipeline: free and AI-assisted](#30-art-pipeline-free-and-ai-assisted)
 31. [Save data and cross-progression](#31-save-data-and-cross-progression)
 32. [Performance budgets](#32-performance-budgets)
 33. [Analytics, crash reporting and privacy](#33-analytics-crash-reporting-and-privacy)
@@ -633,7 +635,7 @@ R interact · C Patch Kit · middle mouse ping · Tab map. Fully remappable.
 
 | Feature | Spec |
 |---|---|
-| Camera | `Camera2D`, mid zoom (hero ≈ 56 px at 640×360), smoothing, 56 px look-ahead toward aim/movement, room limits |
+| Camera | `Camera2D`, **close zoom like Dead Cells**: the view is ~240 world px (15 tiles) tall, so the hero fills ~1/5 of the screen height; zoom is rounded per window size so every world pixel covers whole screen pixels (crisp pixel art). Smoothing, 48 px look-ahead toward movement, looks down while falling, room limits |
 | Screen shake | Trauma-based; "reduce shake" option |
 | Zoom | Slight pull-out in large rooms and boss arenas; brief punch-in on quick-draw kills |
 | Hit freeze | 2–10 frames scaled by damage |
@@ -661,8 +663,9 @@ and the true ending blends both.
 
 ### 17.2 Style
 
+- **All art is made in-house for $0** with free tools, AI image models and code (section 30).
 - Lit pixel art: characters rendered from 3D to pixels (section 30) with normal maps, lit by 2D lights.
-- Mid zoom: hero ≈ 56 px tall, enemies 24–120 px, bosses up to 300 px.
+- Close zoom (view ~240 px tall): hero ≈ 44–56 px tall, enemies 24–120 px, bosses up to 220 px (a boss should fit on screen).
 - Strong silhouettes; each character readable from shape alone.
 - Rain, reflections on wet floors, volumetric-looking light shafts (faked with sprites).
 - UI: clean, minimal, warm accent color; HALCYON's messages in its own cold typeface.
@@ -670,8 +673,8 @@ and the true ending blends both.
 ### 17.3 Must be original
 
 The neon look is common, and Katana ZERO also uses it. LAST EDGE stays distinct through the cold/warm color
-script, mid-zoom lit pixel art, its own character designs and its own UI. No traced or referenced poses or
-layouts from other games.
+script, close-zoom lit pixel art, its own character designs and its own UI. No traced or referenced poses or
+layouts from other games, and **AI prompts never name other games, studios or artists**.
 
 ---
 
@@ -1020,27 +1023,121 @@ build scene + minimap.
 **Requirements:** < 300 ms on a low-end phone · 10,000-seed fuzz test per area with 0 failures ·
 same seed + version = identical level on every platform (required for co-op and daily runs).
 
+### 29.1 Multi-level (vertical) layout
+
+Levels are never flat corridors. Like Dead Cells, every area stacks **3–5 levels** of play
+connected in both directions, so players constantly jump up, drop down and choose routes.
+
+**Connectors between levels**
+
+| Connector | How it works | Notes |
+|---|---|---|
+| **One-way platforms** | Jump up through them; Down + Jump drops through | The main "stairs": stacks ≤ 5 tiles apart |
+| **Drop-through floors** | A one-way section inside a floor | Lets players drop into the level below and jump back up |
+| **Open drops** | Gaps at floor edges | Every drop has a visible landing and a way back up (or is a deliberate one-way shortcut) |
+| **Wall-jump shafts** | Vertical shafts 4–6 tiles wide | Fast vertical routes; reward skill |
+| **Ledges** | Wall tops the player can grab and climb | Forgives jumps that come up a little short |
+| **Slam drops** | Down + Slash in the air dives onto enemies below | Makes dropping down an attack, not just movement |
+| **Later: grapple points, breach walls, mag-ceilings** | Traversal unlocks (section 4) | Open secret routes between levels |
+
+**Reach limits (Ronin tuning; 1 tile = 16 px)**
+
+| Move | Height | Design rule |
+|---|---|---|
+| Jump | 80 px = 5 tiles | Platforms reachable by a single jump: ≤ 5 tiles above |
+| Jump + double jump | ~140 px ≈ 8 tiles | Optional/skill routes: 6–8 tiles above |
+| Horizontal gap (full run + jump) | ~8 tiles | Required gaps ≤ 6 tiles |
+| Fall | Unlimited, no fall damage | Camera looks down while falling fast so landings are visible |
+
+**Layout rules**
+- Every room uses at least 2 levels; tall rooms (1 chunk wide × 2–3 chunks high) appear in every area.
+- Place enemies on different levels: shooters on high perches, melee enemies below, so players choose an approach angle.
+- Offer a **safe route and a risky route** (e.g. a spike pit with treasure vs a longer climb).
+- No blind drops: a drop's landing must be visible (camera look-down) or telegraphed (light, debris).
+- The way back up must exist within the same room unless the drop is a marked shortcut.
+- Generator validation (step 8) checks reachability with these reach limits, both up and down.
+
+**Gray-box sandbox:** `game/arena/maps/sandbox.txt` is a hand-made multi-level test map
+(ASCII legend in `game/arena/test_arena.gd`) with every connector above, used to tune movement
+and combat until real room templates exist.
+
 ---
 
-## 30. The 3D-to-pixel art pipeline
+## 30. Art pipeline: free and AI-assisted
+
+**Budget for art: $0.** Everything is made on the Mac with free tools. AI makes what it's good at
+(concepts, backgrounds, props, icons, illustrations); 3D and code make what must stay consistent
+(animated characters, enemies, tiles, effects). Claude writes the scripts that connect the steps.
+
+### 30.1 Free tools
+
+| Tool | Use | Cost |
+|---|---|---|
+| **Draw Things** (Mac App Store) | Runs AI image models **locally** on the M4 Pro: no per-image fees, no account | Free |
+| AI image models: **SDXL** (+ pixel-art LoRAs) or **FLUX.1 [schnell]** | Image generation. Only use models whose license allows commercial use of outputs; check each LoRA's license too | Free |
+| **Blender** (installed) | 3D-to-pixel characters and enemies | Free |
+| **Mixamo** (free Adobe account) | Auto-rigging + animation library (runs, jumps, sword attacks), royalty-free in games | Free |
+| **LibreSprite** or **Pixelorama** | Pixel cleanup and touch-ups | Free |
+| **Laigter** | Normal maps for 2D sprites (lighting) | Free |
+| `tools/art/pixelize.py` (Claude) | Turns any AI image into LAST EDGE pixel art: downscale, snap to the game palette, clean edges | Free |
+| `tools/blender/*.py` (Claude) | Procedural models (robots, drones, blades) + sprite rendering | Free |
+| Free OFL pixel fonts (e.g. Silkscreen, Pixelify Sans) | UI text | Free |
+
+### 30.2 How each kind of art is made
+
+| Asset | Method |
+|---|---|
+| **Playable characters + humanoid enemies + the Linked** | AI concept turnaround (front/side) → body from a Mixamo base character, with coats, masks and gear built in Blender (simple shapes scripted by Claude) → Mixamo rig + animations → `render_sprites.py` → pixel sprite sheets + normal maps → cleanup |
+| **Robots, drones, mechs, bosses** | Procedural low-poly models scripted in Blender (mechanical shapes suit code) → keyframed by script → rendered to pixels |
+| **Blades** | Modeled by script; rendered as separate layers so any character can hold any blade |
+| **Tilesets** | Generated in code by Claude (16×16, palette-based, Godot terrain/autotile sets), with AI texture detail run through `pixelize.py` |
+| **Backgrounds (3–5 parallax layers per area)** | AI at high resolution → split into layers → `pixelize.py` |
+| **Props and decoration** | AI → background removed → `pixelize.py` |
+| **Item and blade icons (~200)** | AI → `pixelize.py` at 32×32 with the game palette |
+| **VFX** | Code: Godot particles and shaders, procedural slash smears |
+| **UI** | Code (9-slice panels) + pixel fonts + AI icons |
+| **Story illustrations, Steam capsules, key art** | AI at high resolution + cleanup; the most visible marketing images, so allow the most iteration |
+
+**Never animate characters with image AI frame by frame**: it can't keep a character consistent
+between frames. Animation always comes from 3D (Mixamo/Blender), so every frame matches.
+
+**Done so far:** the game palette (`tools/art/palette.gpl`), `pixelize.py`, the sandbox's
+tileset and rain (`generate_sandbox_art.py`), and a 3-layer AI parallax backdrop: Stable
+Diffusion XL running locally (`generate_ai_backgrounds.py`), then cut out, made seamless,
+darkened by depth and pixelized (`process_backgrounds.py`).
+
+### 30.3 3D-to-pixel rendering
 
 ```
-Blender: low-poly model + rig + animations (toon/flat shading)
- → tools/blender/render_sprites.py (written by Claude)
-     • orthographic side camera, fixed pixel scale
+Blender: model + rig + animation (toon/flat shading, limited colors per material)
+ → tools/blender/render_sprites.py
+     • orthographic side camera, fixed pixel scale (hero ≈ 48–56 px tall)
      • low-res render, no anti-aliasing
      • passes: color + normal map (+ emission for neon/implants)
-     • all actions, right-facing only (Godot flips for left)
- → sprite sheets + metadata (frame timings, hitbox active frames)
- → Godot import script → SpriteFrames / AnimationPlayer tracks
- → Aseprite touch-ups (faces, smears, highlights)
+     • every animation, right-facing only (Godot flips for left)
+     • frame timings exported to match the combat frame data (section 5.4)
+ → sprite sheets + metadata → Godot import script → SpriteFrames / AnimationPlayer
+ → cleanup in LibreSprite/Pixelorama (faces, sword smears, highlights)
 ```
 
-- One rig per body type; characters and Linked variants reuse rigs (cheaper).
-- **Alternate co-op colors** via palette-swap shader (no extra renders).
-- **Blade swaps:** blades are separate sprite layers attached to the hand bone positions → any character can hold any blade without re-rendering bodies.
-- Tilesets, backgrounds, VFX and UI are hand-made in Aseprite.
-- **Key art and Steam capsules:** commissioned illustration.
+- One rig per body type; characters and Linked variants reuse rigs.
+- **Co-op alternate colors** via a palette-swap shader (no extra renders).
+
+### 30.4 Consistency rules
+
+- One palette for the whole game: `tools/art/palette.gpl` (cold teal/white, warm amber/red). Every image passes through `pixelize.py` so all art shares the palette and pixel size.
+- One style prompt file: `tools/art/style_prompts.md` with the shared prompt prefix per asset type, plus the seeds of approved images.
+- Generate many, keep few. Approve against the mood board before anything goes into the game.
+- Expect cleanup: plan roughly a third of art time for fixing AI output by hand or with scripts.
+- **Checkpoint:** the vertical slice (M6) decides whether the look is good enough. If one piece falls short (usually key art), that's the only place to reconsider spending.
+
+### 30.5 Legal for AI art
+
+- Log every AI-generated asset in `ASSET_LICENSES.md`: tool, model, prompt, date.
+- **Steam requires disclosing AI-generated content** (store page questionnaire).
+- AI images generally can't be copyright-protected (e.g. in the US), so others could reuse the art.
+  The game as a whole (code, story, characters, design) is still yours.
+- Mixamo assets are royalty-free inside games but can't be redistributed as raw files.
 
 ---
 
@@ -1166,24 +1263,39 @@ in age ratings where asked (no chat reduces requirements).
 - [ ] **Net spike 2:** EOS plugin login + lobby + P2P relay between **PC ↔ Android** (and iOS if possible) → decide EOS vs fallback
 - [ ] Name check: LAST EDGE, HALCYON, characters (Steam, stores, USPTO/WIPO)
 - [ ] One-page design summary + mood board (cold/warm color script)
-- [ ] Concept artist briefed: the Ronin, 2 machines, 1 Linked, Neon Slums mood
+- [ ] AI concept pass (local, free): the Ronin, 2 machines, 1 Linked, Neon Slums mood
 
 **✅ Exit:** builds on every platform; two devices connect through EOS (or the fallback is chosen).
 
 ### M1 — Networked combat feel prototype · ~5–6 weeks
 
 - [x] Ronin offline movement: run, variable jump, double jump, coyote time, jump buffer, wall slide/jump, drop-through, dodge with i-frames
-- [ ] Ledge grab
+- [x] Ledge grab
 - [ ] Player movement **networked with prediction**
 - [ ] Input actions + controller + keyboard/mouse + **touch v1**
 - [ ] Components: Resolve, posture, hitbox/hurtbox, knockback; damage pipeline v1
 - [x] Katana slash combo (3 hits, 8 directions, frame data)
-- [ ] Deflect, parry, quick-draw, executions
-- [ ] Focus slow-mo (solo version + co-op local-area version)
+- [x] Deflect, parry, quick-draw, executions
+- [x] Focus slow-mo (solo version)
+- [ ] Focus co-op local-area version
 - [x] Feedback: hit freeze, flash, screen shake
 - [ ] Kill freeze-frame, sounds, particles
-- [ ] Enemies: Patrol Drone (deflect), Hound (parry), Linked Citizen (cut the link)
-- [x] Gray-box arena, follow camera, training dummy (posture + stagger), spikes
+- [x] Enemies: Patrol Drone (deflect), Hound (parry)
+- [x] Enemy: Linked Citizen (cut the link → freed; Mercy record saved in the profile)
+- [x] Multi-level gray-box sandbox (ASCII map), follow camera with fall look-down, training dummy, spikes
+- [x] Slam (Down + Slash in the air) with landing shockwave
+- [x] First free art: code-generated tileset with auto-tiling, rain, `pixelize.py`
+- [x] AI parallax backdrop (3 layers, local SDXL, $0)
+- [x] Blender 3D-to-pixel pipeline; Hound and Patrol Drone as animated sprites
+- [x] The Ronin (hero) built and posed in Blender: 21 animations synced to the frame data
+- [x] Combat choreography (stepping combo hits, leaping finisher, attack magnetism, air hang time) and combo counter with ranks
+- [x] Burning amber katana: longer blade, flames, swing fire, smoke, embers, firelight; fiery trails and hit fire bursts
+- [x] Sound: 31 synthesized effects hooked to every action, "Neon Rain" music loop, rain ambience
+- [x] Ninja movement: low leaning sprint (12 frames, speed-matched), crouched sneak, forward-roll dodge, double-jump front flip, scarf follow-through
+- [x] Level art: building facades with windows/pipes/signs and alleys, floor props, foreground silhouettes
+- [x] Lighting & atmosphere: dark ambient, lamp/neon/warning lights with light pools, normal-mapped characters, hero key light, fog, vignette, color grading
+- [x] Dead Cells-style effects: glowing blade trails along the real blade, sparks, cut marks, hit lights, bloom, damage numbers, afterimages, dust, slam ring, enemy death bursts with oil
+- [ ] Demo build (see MIXAMO_DOWNLOADS.md for the human characters): Warden boss, 2 areas with random rooms, blade pickups, title/end screens, sounds, web + Windows + Mac builds
 - [ ] **2-player co-op on LAN** with lag simulation
 
 **✅ Exit:** fighting feels great solo and in co-op at 150 ms simulated lag, on controller and on a phone.
@@ -1339,35 +1451,30 @@ M12                                                     ███
 | **1.0 + mobile + cross-play** | **~25–28** |
 
 Co-op with cross-play adds about 6–8 months compared with single-player. Art is the other main risk:
-**brief the concept artist in M0** and **start the pipeline in M3–M4**.
+**start AI concepts and the free art tools early** and **build the 3D-to-pixel pipeline in M3–M4**.
 
 ---
 
 ## 38. Budget
 
+**Art is $0** (section 30). Remaining costs are store fees and optional items.
+
 | Item | Low | High |
 |---|---|---|
 | Steam Direct (game + demo is free) | $100 | $100 |
 | Google Play + Apple (year 1) | $124 | $124 |
-| Aseprite | $20 | $20 |
-| Characters ×5 (concept + model/rig + animations) | $5,000 | $15,000 |
-| Enemies (~28, reusing rigs) + 4 bosses | $4,000 | $15,000 |
-| Areas ×9 + hub (tilesets, parallax, props) | $2,500 | $10,000 |
-| Item/blade icons (~200) + UI | $800 | $4,000 |
-| VFX | $300 | $2,000 |
-| Story illustrations (act changes, 3 endings) | $500 | $3,000 |
-| Music (areas, bosses, hub, menus) | $2,000 | $10,000 |
-| SFX | $200 | $1,000 |
-| **Steam capsule + key art** | $500 | $2,500 |
-| Trailers | $0 (DIY) | $2,000 |
-| Localization (8 languages) | $2,000 | $8,000 |
-| Test devices (Android low-end, older iPhone, Steam Deck) | $300 | $1,000 |
+| All art: characters, enemies, areas, icons, UI, VFX, illustrations, key art (AI + free tools) | $0 | $0 |
+| Music (free: CC0 tracks / own compositions; paid: composer) | $0 | $10,000 |
+| SFX (free: sfxr/jsfxr + CC0 libraries) | $0 | $1,000 |
+| Trailers | $0 (DIY) | $0 |
+| Localization (8 languages; free: AI translation + community review) | $0 | $8,000 |
+| Test devices (Android low-end, older iPhone, Steam Deck) | $0 (own devices) | $1,000 |
 | Online services (EOS) | $0 | $0 |
 | Trademark (optional) | $0 | $1,500 |
-| **Total** | **~$18,300** | **~$75,200** |
+| **Total** | **~$224** | **~$21,700** |
 
-Spending is staged: before the M6 decision you only need ~$4–10k (concept art, Ronin, 2 areas, 8 enemies, Warden, some music).
-Early Access revenue can fund the rest.
+The low column is a fully free production except store fees. Early Access revenue can fund any
+optional items later.
 
 ---
 
@@ -1429,7 +1536,7 @@ Early Access revenue can fund the rest.
 - **Name checks** for LAST EDGE, HALCYON and character names before committing; consider a trademark after the slice.
 - **Asset licenses** logged in `ASSET_LICENSES.md`; check fonts and music for commercial use.
 - **Contracts** for all commissioned work, transferring full commercial rights.
-- **AI-generated assets:** log them; Steam requires disclosure.
+- **AI-generated assets:** log them (tool, model, prompt); Steam requires disclosure; use only models whose licenses allow commercial use; see section 30.5.
 - **Third-party terms:** EOS, Steamworks, Apple and Google developer agreements; open-source notices (Godot MIT, plugins) in the credits.
 - **Sensitive theme:** AI and implants are fictional; avoid real companies, products or people.
 - **Business:** consider registering a business before EA (store organization accounts, payouts, taxes).
@@ -1475,5 +1582,5 @@ Study these for the lessons, not the content:
 1. **Windows PC:** install Godot 4 (+ export templates), Git + LFS, OpenJDK 17 + Android SDK, Blender, Aseprite, Claude Code.
 2. **Copy `PLAN.md`** (and `PLAN-unity-3d-platformer.md`) to `C:\Dev\LastEdge`.
 3. **Create an Epic Online Services developer account** (free) for the M0 network spike.
-4. **Find a concept artist** and send the brief: the Ronin, 2 machines, 1 Linked, Neon Slums mood, cold/warm palette.
+4. **Install Draw Things** (free, Mac App Store) for local AI concepts: the Ronin, 2 machines, 1 Linked, Neon Slums mood, cold/warm palette.
 5. Open Claude Code in `C:\Dev\LastEdge` and say: *"Start M0 from PLAN.md."*

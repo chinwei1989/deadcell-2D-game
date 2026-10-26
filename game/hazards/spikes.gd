@@ -6,10 +6,13 @@ extends Node2D
 @export var size: Vector2 = Vector2(64, 16)
 @export var color: Color = Color("d64545")
 @export var bounce: float = 330.0
+## Off when the level draws spikes with tiles instead.
+@export var draw_visual: bool = true
 
 
 func _ready() -> void:
-	_build_visual()
+	if draw_visual:
+		_build_visual()
 	_build_hitbox()
 
 

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://enemies/base/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+max_health = 40.0
+max_posture = 25.0
+stagger_time = 2.5
+knockback_resistance = 0.2
+move_speed = 55.0
+acceleration = 500.0
+aggro_range = 130.0
+attack_range = 40.0
+windup_frames = 30
+active_frames = 12
+recovery_frames = 40
+lunge_speed = 160.0
+lunge_hop = 60.0
+attack_knockback = Vector2(140, -110)
+parried_posture_damage = 30.0

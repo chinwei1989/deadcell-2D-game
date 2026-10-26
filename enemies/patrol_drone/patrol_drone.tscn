@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://enemies/patrol_drone/patrol_drone.gd" id="1_drone"]
+[ext_resource type="Resource" path="res://enemies/patrol_drone/patrol_drone_data.tres" id="2_data"]
+[ext_resource type="Script" path="res://core/components/health_component.gd" id="3_health"]
+[ext_resource type="Script" path="res://core/components/posture_component.gd" id="4_posture"]
+[ext_resource type="Script" path="res://core/components/hurtbox_component.gd" id="5_hurtbox"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(18, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt"]
+size = Vector2(20, 14)
+
+[node name="PatrolDrone" type="CharacterBody2D"]
+motion_mode = 1
+script = ExtResource("1_drone")
+data = ExtResource("2_data")
+sprite_sheet = "res://art/sprites/patrol_drone.png"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_body")
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("3_health")
+
+[node name="Posture" type="Node" parent="."]
+script = ExtResource("4_posture")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 128
+collision_mask = 0
+monitoring = false
+script = ExtResource("5_hurtbox")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("RectangleShape2D_hurt")

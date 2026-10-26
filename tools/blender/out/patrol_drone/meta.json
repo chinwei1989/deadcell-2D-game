@@ -1,0 +1,24 @@
+{
+  "name": "patrol_drone",
+  "frame_size": [
+    44,
+    36
+  ],
+  "origin": [
+    22,
+    18
+  ],
+  "animations": {
+    "idle": {
+      "frames": 4,
+      "fps": 10,
+      "loop": true
+    },
+    "windup": {
+      "frames": 4,
+      "fps": 6,
+      "loop": false
+    }
+  },
+  "normals": true
+}

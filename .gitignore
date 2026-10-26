@@ -13,3 +13,8 @@ export_credentials.cfg
 # OS
 .DS_Store
 Thumbs.db
+
+# Python tool environments
+tools/art/.venv/
+__pycache__/
+tools/art/raw/

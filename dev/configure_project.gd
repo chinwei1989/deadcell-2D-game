@@ -12,6 +12,7 @@ const AUTOLOADS: Array[Array] = [
 	["RunState", "res://autoload/run_state.gd"],
 	["Net", "res://autoload/net.gd"],
 	["Feel", "res://autoload/feel.gd"],
+	["Audio", "res://autoload/audio.gd"],
 	["Game", "res://autoload/game.gd"],
 ]
 
@@ -55,6 +56,7 @@ func _rendering() -> void:
 	_put("rendering/2d/snap/snap_2d_transforms_to_pixel", true)
 	_put("rendering/2d/snap/snap_2d_vertices_to_pixel", true)
 	_put("rendering/environment/defaults/default_clear_color", Color("0b1620"))
+	_put("rendering/viewport/hdr_2d", true) # Colors above 1.0 glow (WorldEnvironment bloom).
 	_put("debug/gdscript/warnings/untyped_declaration", 1) # Warn: keep GDScript typed.
 
 

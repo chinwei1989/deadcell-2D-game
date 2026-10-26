@@ -24,6 +24,7 @@ RunState="*res://autoload/run_state.gd"
 Net="*res://autoload/net.gd"
 Feel="*res://autoload/feel.gd"
 Game="*res://autoload/game.gd"
+Audio="*res://autoload/audio.gd"
 
 [debug]
 
@@ -178,6 +179,7 @@ common/physics_interpolation=true
 
 textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="mobile"
+viewport/hdr_2d=true
 environment/defaults/default_clear_color=Color(0.043137256, 0.08627451, 0.1254902, 1)
 2d/snap/snap_2d_transforms_to_pixel=true
 2d/snap/snap_2d_vertices_to_pixel=true
