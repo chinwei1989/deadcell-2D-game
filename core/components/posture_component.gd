@@ -34,6 +34,16 @@ func extend_stagger(seconds: float) -> void:
 		_stagger_left = maxf(_stagger_left, seconds)
 
 
+## Ends a stagger early (e.g. a boss shrugging off an execution).
+func end_stagger() -> void:
+	if not is_staggered():
+		return
+	_stagger_left = 0.0
+	value = 0.0
+	changed.emit(value, max_posture)
+	recovered.emit()
+
+
 func add(amount: float) -> void:
 	if is_staggered() or amount <= 0.0:
 		return

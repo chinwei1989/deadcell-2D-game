@@ -48,6 +48,9 @@ func _display() -> void:
 	_put("display/window/stretch/scale_mode", "integer")
 	_put("display/window/handheld/orientation", 4) # Sensor landscape.
 	_put("gui/theme/custom", "res://ui/theme/game_theme.tres") # Pixel font for every Label.
+	# Exports keep .tres as text: the binary conversion dropped PackedStringArray values
+	# (AreaTheme.rooms came out empty in the exported pack).
+	_put("editor/export/convert_text_resources_to_binary", false)
 
 
 func _rendering() -> void:

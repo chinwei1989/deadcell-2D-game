@@ -16,6 +16,9 @@ extends Node
 ##   slam   step off a platform and slam down onto the dummy below
 ##   ninja  sprint, double-jump front flip, dodge roll, short sneak steps
 ##   linked walk at a Linked Citizen; the bot parries its grab and cuts the link
+##   warden fight the Warden (run with --room=res://game/run/rooms/boss/warden_arena.txt):
+##          parry sweeps, roll through charges, jump shockwaves, deflect bolts, punish
+##   walk   pace right and left, never fight (with --run: tests losing a run)
 ##   brawl  walk at the Hound, slash it whenever it isn't attacking (flinches, recoil) and
 ##          roll away from its lunges, until it staggers; then execute it (cut in two)
 ## Set the DEMO_TRACE environment variable to also print the player's position and state.
@@ -35,6 +38,12 @@ const TIMELINES: Dictionary = {
 	],
 	"hound": [],
 	"brawl": [],
+	"warden": [],
+	"walk": [
+		[0.1, &"move_right", true], [6.0, &"move_right", false], [6.0, &"move_left", true], [12.0, &"move_left", false],
+		[12.0, &"move_right", true], [18.0, &"move_right", false], [18.0, &"move_left", true], [24.0, &"move_left", false],
+		[24.0, &"move_right", true],
+	],
 	"linked": [],
 	"drone": [],
 	"ledge": [
@@ -67,7 +76,9 @@ const STARTS: Dictionary = {
 	"slam": &"e",
 	"linked": &"f",
 }
-const BOT_SCENARIOS: Array[String] = ["hound", "drone", "linked", "brawl"]
+const BOT_SCENARIOS: Array[String] = ["hound", "drone", "linked", "brawl", "warden"]
+## Warden states where it can't hurt you: hit it.
+const WARDEN_OPENINGS: Array[StringName] = [&"crash", &"slam_land", &"sweep_recover", &"stunned", &"staggered", &"approach", &"shoot"]
 ## Seconds before the bot can press the same action again.
 const BOT_COOLDOWN := 0.3
 
@@ -99,7 +110,7 @@ func _ready() -> void:
 	var player := _player()
 	if player:
 		player.state_changed.connect(func(s: Player.State) -> void: _log("state %s" % Player.State.keys()[s]))
-		var arena := get_tree().get_first_node_in_group(&"arena") as TestArena
+		var arena := get_tree().get_first_node_in_group(&"arena") as Level
 		if arena and STARTS.has(_scenario):
 			player.global_position = arena.marker(STARTS[_scenario]) + Vector2(0.0, -Player.HALF_HEIGHT)
 			player.spawn_position = player.global_position
@@ -145,6 +156,11 @@ func _bot() -> void:
 		var distance := player.global_position.distance_to(enemy.global_position)
 		nearest = minf(nearest, distance)
 		var side := signf(enemy.global_position.x - player.global_position.x)
+		if enemy is Warden:
+			var bot_steer := _fight_warden(enemy as Warden, player, distance, side)
+			if bot_steer != 0.0:
+				steer = bot_steer
+			continue
 		# Parry as the wind-up ends, like a player reading the telegraph. (Presses made by a
 		# script only count as "just pressed" on the next physics frame, so reacting to the
 		# lunge itself is one frame too late against fast grabs.)
@@ -164,6 +180,11 @@ func _bot() -> void:
 				hold_interact = true
 			else:
 				_tap(&"slash")
+	for node in get_tree().get_nodes_in_group(&"shockwaves"):
+		var wave := node as Shockwave
+		var dx := player.global_position.x - wave.global_position.x
+		if signf(dx) == wave.direction and absf(dx) < 34.0 and absf(player.global_position.y + Player.HALF_HEIGHT - wave.global_position.y) < 12.0:
+			_tap(&"jump")
 	for node in get_tree().get_nodes_in_group(&"projectiles"):
 		var bolt := node as Projectile
 		var to_player := player.global_position + Vector2(0.0, -6.0) - bolt.global_position
@@ -173,12 +194,34 @@ func _bot() -> void:
 			_tap(&"slash")
 	if hold_interact:
 		steer = 0.0 # Stand still while cutting the link.
-	elif steer == 0.0 and _scenario in ["hound", "linked", "brawl"] and nearest > 50.0 and nearest < 1000.0:
+	elif steer == 0.0 and _scenario in ["hound", "linked", "brawl", "warden"] and nearest > 50.0 and nearest < 1000.0:
 		steer = 1.0
 	_set_pressed(&"interact", hold_interact)
 	_set_pressed(&"move_right", steer > 0.0)
 	_set_pressed(&"move_left", steer < 0.0)
 	_set_pressed(&"move_up", aim_up)
+
+
+## Returns how to steer (0 = let the default walk-in steering decide).
+func _fight_warden(w: Warden, player: Player, distance: float, side: float) -> float:
+	var windup := w.current_windup_frames()
+	var late := windup > 0 and w.state_past_frames(windup - 4)
+	match w.state:
+		&"sweep_windup":
+			if late and distance < 120.0:
+				_tap(&"parry")
+				return side
+		&"charge":
+			if distance < 70.0 and signf(w.velocity.x) == -side:
+				_tap(&"dodge") # Roll through it (i-frames).
+				return side
+			return side
+		&"slam_windup", &"slam_air":
+			return -side if distance < 60.0 else 0.0
+	if w.state in WARDEN_OPENINGS and distance < 76.0:
+		_tap(&"slash")
+		return side
+	return 0.0
 
 
 func _set_pressed(action: StringName, pressed: bool) -> void:

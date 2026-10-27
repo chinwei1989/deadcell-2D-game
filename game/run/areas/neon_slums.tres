@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AreaTheme" format=3]
+
+[ext_resource type="Script" path="res://game/level/area_theme.gd" id="1_theme"]
+
+[resource]
+script = ExtResource("1_theme")
+display_name = "NEON SLUMS"
+subtitle = "WHERE THE UNPLUGGED HIDE"
+ambient = Color(0.5, 0.56, 0.68, 1)
+roof_range = Vector2i(3, 9)
+rooms = PackedStringArray("slums/market_alley", "slums/stairwell", "slums/two_floors", "slums/spike_pit")
+rooms_per_run = 3
+random_enemies = PackedStringArray("H", "H", "L")

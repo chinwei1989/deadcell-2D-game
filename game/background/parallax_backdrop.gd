@@ -19,6 +19,11 @@ const VERTICAL_FACTOR := 0.04
 
 ## Camera height the layers are aligned to (usually the middle of the level).
 var reference_y: float = 0.0
+## Color multiplied into the city layers (areas set their own mood).
+var tint: Color = Color.WHITE
+var rain_amount: int = 120
+## Extra horizontal scroll in pixels (the title screen drifts without a moving camera).
+var drift: float = 0.0
 
 var _rects: Array[TextureRect] = []
 var _rain: CPUParticles2D
@@ -31,6 +36,7 @@ func _ready() -> void:
 		rect.texture = texture
 		rect.stretch_mode = TextureRect.STRETCH_TILE
 		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rect.modulate = tint
 		add_child(rect)
 		_rects.append(rect)
 	_rain = _make_rain()
@@ -46,7 +52,7 @@ func _process(_delta: float) -> void:
 	for i in _rects.size():
 		var rect := _rects[i]
 		var texture_size := rect.texture.get_size()
-		var scroll_x := fposmod(center.x * LAYER_FACTORS[i], texture_size.x)
+		var scroll_x := fposmod((center.x + drift) * LAYER_FACTORS[i], texture_size.x)
 		var shift_y := (center.y - reference_y) * VERTICAL_FACTOR * (i + 1)
 		rect.position = Vector2(-scroll_x, view.y - texture_size.y - shift_y).round()
 		rect.size = Vector2(view.x + texture_size.x, texture_size.y)
@@ -57,7 +63,7 @@ func _process(_delta: float) -> void:
 func _make_rain() -> CPUParticles2D:
 	var rain := CPUParticles2D.new()
 	rain.texture = RAIN
-	rain.amount = 120
+	rain.amount = maxi(rain_amount, 1)
 	rain.lifetime = 0.9
 	rain.preprocess = 1.0
 	rain.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE

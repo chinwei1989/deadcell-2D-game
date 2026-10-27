@@ -6,8 +6,14 @@ signal mode_changed(mode: Mode)
 enum Mode { BOOT, TITLE, HUB, LOBBY, IN_RUN, RESULTS }
 
 const SCENES: Dictionary = {
+	&"title": "res://ui/title/title.tscn",
+	&"run": "res://game/run/run.tscn",
+	&"end": "res://ui/end/end_screen.tscn",
 	&"test_arena": "res://game/arena/test_arena.tscn",
 }
+## Where the end screen's "GIVE FEEDBACK" button goes (a form for playtesters). Empty = no
+## button. Set this before sharing a build.
+const FEEDBACK_URL := ""
 
 var mode: Mode = Mode.BOOT
 

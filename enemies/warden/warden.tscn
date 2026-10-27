@@ -1,0 +1,67 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://enemies/warden/warden.gd" id="1_warden"]
+[ext_resource type="Resource" path="res://enemies/warden/warden_data.tres" id="2_data"]
+[ext_resource type="Script" path="res://core/components/health_component.gd" id="3_health"]
+[ext_resource type="Script" path="res://core/components/posture_component.gd" id="4_posture"]
+[ext_resource type="Script" path="res://core/components/hurtbox_component.gd" id="5_hurtbox"]
+[ext_resource type="Script" path="res://core/components/hitbox_component.gd" id="6_hitbox"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(40, 80)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt"]
+size = Vector2(46, 84)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_sweep"]
+size = Vector2(84, 56)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_charge"]
+size = Vector2(44, 76)
+
+[node name="Warden" type="CharacterBody2D"]
+script = ExtResource("1_warden")
+data = ExtResource("2_data")
+sprite_sheet = "res://art/sprites/warden.png"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -40)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("3_health")
+
+[node name="Posture" type="Node" parent="."]
+script = ExtResource("4_posture")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 128
+collision_mask = 0
+monitoring = false
+script = ExtResource("5_hurtbox")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -42)
+shape = SubResource("RectangleShape2D_hurt")
+
+[node name="AttackHitbox" type="Area2D" parent="."]
+collision_layer = 32
+collision_mask = 64
+monitorable = false
+script = ExtResource("6_hitbox")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackHitbox"]
+position = Vector2(46, -40)
+shape = SubResource("RectangleShape2D_sweep")
+
+[node name="ChargeHitbox" type="Area2D" parent="."]
+collision_layer = 32
+collision_mask = 64
+monitorable = false
+script = ExtResource("6_hitbox")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ChargeHitbox"]
+position = Vector2(18, -40)
+shape = SubResource("RectangleShape2D_charge")

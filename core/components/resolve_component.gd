@@ -31,6 +31,12 @@ func reset() -> void:
 	changed.emit(pips, max_pips)
 
 
+## Sets the pips directly (carrying Resolve from room to room in a run).
+func set_pips(value: float) -> void:
+	pips = clampf(value, 0.0, max_pips)
+	changed.emit(pips, max_pips)
+
+
 func tick(delta: float) -> void:
 	_invulnerable_left = maxf(_invulnerable_left - delta, 0.0)
 

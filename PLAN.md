@@ -1298,7 +1298,8 @@ in age ratings where asked (no chat reduces requirements).
 - [x] Enemy reactions: flinch (wind-ups and attacks are armored), recoil kick/squash/tilt, white flash then amber burn; blade kills cut machines in two (glowing cut, tumbling halves, scrap pop), other kills throw them smoking; the Linked collapse
 - [x] Smoother attacks: slashes, air slashes and quick-draw rebuilt from key poses with in-betweens (9–12 frames, arcs over the top, anticipation and overshoot), phases matched to the frame data
 - [x] UI: original pixel font ("Last Edge", drawn in code), clean HUD (vitals plate, combo counter), fading controls panel (H/F1), no debug text
-- [ ] Demo build (see MIXAMO_DOWNLOADS.md for the human characters): Warden boss, 2 areas with random rooms, blade pickups, title/end screens, sounds, web + Windows + Mac builds
+- [x] Demo content: the Warden boss (Blender model, 4 attacks, 2 phases, boss bar), 2 areas with 4 rooms each (3 picked per run by seed) + boss arena, exit doors, title/end/pause screens, run stats, boss music
+- [ ] Demo release: export templates, web + Windows + Mac builds (presets ready), web renderer look, feedback link, blade pickups
 - [ ] **2-player co-op on LAN** with lag simulation
 
 **✅ Exit:** fighting feels great solo and in co-op at 150 ms simulated lag, on controller and on a phone.

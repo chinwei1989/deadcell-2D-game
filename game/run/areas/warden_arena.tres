@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AreaTheme" format=3]
+
+[ext_resource type="Script" path="res://game/level/area_theme.gd" id="1_theme"]
+
+[resource]
+script = ExtResource("1_theme")
+display_name = "THE WARDEN"
+subtitle = "HALCYON'S ENFORCER"
+ambient = Color(0.46, 0.44, 0.56, 1)
+backdrop_tint = Color(1.0, 0.75, 0.75, 1)
+terrain_tint = Color(0.95, 0.88, 0.9, 1)
+rain_amount = 220
+roof_range = Vector2i(10, 16)
+music = "res://audio/music/warden.wav"
+rooms = PackedStringArray("boss/warden_arena")
+rooms_per_run = 1
+random_enemies = PackedStringArray()

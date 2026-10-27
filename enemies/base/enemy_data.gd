@@ -52,6 +52,9 @@ extends Resource
 @export var is_machine: bool = true
 ## Seconds the remains stay before they're cleared.
 @export var corpse_time: float = 1.2
+## 0 = an execution kills. Otherwise it deals this much damage and ends the stagger
+## (bosses).
+@export var execution_damage: float = 0.0
 
 @export_group("Ranged")
 @export var projectile_speed: float = 160.0

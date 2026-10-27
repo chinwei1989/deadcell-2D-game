@@ -20,7 +20,8 @@ const SIGN_TEAL := 12
 const SIGN_RED := 13
 const ROOF := 14
 const ROOF_ANTENNA := 15
-## Building rooftops are this many tiles from the top of the map (min, max).
+## Building rooftops are this many tiles from the top of the map (min, max); the default for
+## the sandbox. Run rooms pass their AreaTheme's range.
 const ROOF_RANGE := Vector2i(12, 30)
 ## Chance of an alley (a gap with no facade, showing the city behind) after a building.
 const ALLEY_CHANCE := 0.4
@@ -33,7 +34,7 @@ const FOREGROUND: Array[String] = ["pillar", "cables", "girder", "railing"]
 
 
 ## A back-wall TileMapLayer: one building after another across the map width.
-static func build_back_wall(rows: PackedStringArray, map_size: Vector2i) -> TileMapLayer:
+static func build_back_wall(rows: PackedStringArray, map_size: Vector2i, roof_range: Vector2i = ROOF_RANGE) -> TileMapLayer:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 2026 # Fixed: the same city every run (and for both co-op players).
 	var layer := TileMapLayer.new()
@@ -43,7 +44,7 @@ static func build_back_wall(rows: PackedStringArray, map_size: Vector2i) -> Tile
 	var x := 0
 	while x < map_size.x:
 		var width := rng.randi_range(4, 9)
-		var roof := rng.randi_range(ROOF_RANGE.x, ROOF_RANGE.y)
+		var roof := rng.randi_range(roof_range.x, roof_range.y)
 		var pipe_column := x + rng.randi_range(0, width - 1) if rng.randf() < 0.5 else -1
 		var sign_row := rng.randi_range(roof + 3, map_size.y - 6) if rng.randf() < 0.35 else -1
 		for bx in range(x, mini(x + width, map_size.x)):

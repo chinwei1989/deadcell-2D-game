@@ -80,6 +80,8 @@ func _draw() -> void:
 		var fade_a := 1.0 - float(a["age"]) / LIFETIME
 		var fade_b := 1.0 - float(b["age"]) / LIFETIME
 		var quad := PackedVector2Array([a["inner"], a["tip"], b["tip"], b["inner"]])
+		if Geometry2D.triangulate_polygon(quad).is_empty():
+			continue # Twisted or flat (the blade crossed itself between samples): skip it.
 		var inner_alpha := 0.05
 		draw_polygon(quad, PackedColorArray([
 			Color(color, fade_a * inner_alpha), Color(color, fade_a * 0.5),

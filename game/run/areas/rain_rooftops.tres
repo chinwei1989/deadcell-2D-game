@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AreaTheme" format=3]
+
+[ext_resource type="Script" path="res://game/level/area_theme.gd" id="1_theme"]
+
+[resource]
+script = ExtResource("1_theme")
+display_name = "RAIN ROOFTOPS"
+subtitle = "HALCYON IS WATCHING"
+ambient = Color(0.42, 0.5, 0.68, 1)
+backdrop_tint = Color(0.8, 0.9, 1.1, 1)
+terrain_tint = Color(0.86, 0.92, 1.05, 1)
+rain_amount = 220
+roof_range = Vector2i(15, 21)
+rooms = PackedStringArray("rooftops/rooftop_run", "rooftops/antenna_mast", "rooftops/water_tanks", "rooftops/neon_signs")
+rooms_per_run = 3
+random_enemies = PackedStringArray("H", "L")

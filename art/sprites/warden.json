@@ -1,0 +1,102 @@
+{
+  "frame_size": [
+    176,
+    152
+  ],
+  "origin": [
+    88,
+    146
+  ],
+  "animations": {
+    "idle": {
+      "row": 0,
+      "frames": 4,
+      "fps": 5,
+      "loop": true
+    },
+    "walk": {
+      "row": 1,
+      "frames": 8,
+      "fps": 9,
+      "loop": true
+    },
+    "sweep_windup": {
+      "row": 2,
+      "frames": 4,
+      "fps": 8,
+      "loop": false
+    },
+    "sweep": {
+      "row": 3,
+      "frames": 4,
+      "fps": 20,
+      "loop": false
+    },
+    "sweep_recover": {
+      "row": 4,
+      "frames": 3,
+      "fps": 6,
+      "loop": false
+    },
+    "charge_windup": {
+      "row": 5,
+      "frames": 4,
+      "fps": 7,
+      "loop": false
+    },
+    "charge": {
+      "row": 6,
+      "frames": 6,
+      "fps": 14,
+      "loop": true
+    },
+    "crash": {
+      "row": 7,
+      "frames": 4,
+      "fps": 4,
+      "loop": false
+    },
+    "slam_windup": {
+      "row": 8,
+      "frames": 4,
+      "fps": 8,
+      "loop": false
+    },
+    "slam_air": {
+      "row": 9,
+      "frames": 2,
+      "fps": 8,
+      "loop": true
+    },
+    "slam_land": {
+      "row": 10,
+      "frames": 4,
+      "fps": 6,
+      "loop": false
+    },
+    "shoot_windup": {
+      "row": 11,
+      "frames": 4,
+      "fps": 8,
+      "loop": false
+    },
+    "shoot": {
+      "row": 12,
+      "frames": 4,
+      "fps": 12,
+      "loop": true
+    },
+    "stagger": {
+      "row": 13,
+      "frames": 4,
+      "fps": 5,
+      "loop": true
+    },
+    "intro": {
+      "row": 14,
+      "frames": 8,
+      "fps": 6,
+      "loop": false
+    }
+  }
+}

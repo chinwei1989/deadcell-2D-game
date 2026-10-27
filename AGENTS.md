@@ -25,6 +25,25 @@ godot --headless --path . --fixed-fps 60 --quit-after 600
 # Bot/scripted playtests with an event log (scenarios: combo, hound, drone, ledge, slam, linked, ninja, brawl)
 godot --headless --path . --fixed-fps 60 --quit-after 480 -- --demo=hound
 
+# The Warden fight with the bot (any room map can be loaded into the sandbox with --room)
+godot --headless --path . --fixed-fps 60 --quit-after 4800 -- --room=res://game/run/rooms/boss/warden_arena.txt --demo=warden
+
+# A whole run, skipping the title: auto-cleared (rooms → boss → end screen), or lost on purpose
+godot --headless --path . --fixed-fps 60 --quit-after 2400 -- --run --autoclear
+godot --headless --path . --fixed-fps 60 --quit-after 2400 -- --run --seed=0 --demo=walk
+
+# Preview the end screen with sample stats
+godot --path . -- --end=win
+
+# Export the game data as a pack and run it (checks what an export contains; no templates needed)
+godot --headless --path . --export-pack "macOS" build/pck/last_edge.pck
+godot --headless --main-pack build/pck/last_edge.pck --fixed-fps 60 --quit-after 2400 -- --run --autoclear
+
+# Full exports (need the Godot 4.7.2 export templates installed: Editor → Manage Export Templates)
+godot --headless --path . --export-release "Web" build/web/index.html
+godot --headless --path . --export-release "Windows" build/windows/LastEdge.exe
+godot --headless --path . --export-release "macOS" build/mac/LastEdge.zip
+
 # Same, recorded to PNG frames you can look at
 godot --path . --write-movie /tmp/frames/f.png --fixed-fps 60 --quit-after 480 -- --demo=hound
 
@@ -128,6 +147,13 @@ Add or extend a demo scenario in `dev/demo_driver.gd` for new combat features.
 - `Gradient`: set the colors of both ends (`set_color(0/1)`) **before** `add_point()`;
   adding a point re-sorts the indexes, so a later `set_color(1, ...)` changes the wrong point.
 - Signals declared on the `Events` bus are wrapped in `@warning_ignore_start("unused_signal")`.
+- Exports keep `.tres` as text (`editor/export/convert_text_resources_to_binary=false`, set in
+  `configure_project.gd`): the binary conversion dropped `PackedStringArray` values, so the
+  exported AreaThemes had no rooms. Plain-text data (room maps) needs the presets'
+  `include_filter`; check any export with `--export-pack` + `--main-pack` (commands above).
+- The web build uses the Compatibility renderer, which looks washed out next to the desktop
+  Mobile renderer (no HDR 2D: lamps barely glow, vignette missing). Darkening the
+  CanvasModulate did not help. Investigate before shipping the web build.
 - The pixel font is a bitmap font imported with integer scaling (`scaling_mode=1` in
   `art/fonts/last_edge.fnt.import`): use font sizes 8, 16 or 24 only, and never scale
   Labels (tween colors or positions to make text pop). Outlines don't render on bitmap
@@ -162,7 +188,14 @@ Add or extend a demo scenario in `dev/demo_driver.gd` for new combat features.
 | `enemies/linked_citizen/` | Linked Citizen: human, hits never kill; staggered → execute (slash) or free (hold Interact) |
 | `enemies/training_dummy/` | Practice target (posture, execution, reset) |
 | `combat/projectiles/` | `Projectile`: hits players; deflectable back at enemies |
-| `game/arena/test_arena.gd` | `TestArena`: builds the sandbox from an ASCII map (legend at the top of the file); `marker(&"x")` gives marker positions |
+| `game/level/level.gd` | `Level`: builds a playable room from an ASCII map (legend at the top of the file) + an `AreaTheme`; `marker(&"x")` gives marker positions; signals `exit_reached`, `cleared`, `player_died` |
+| `game/level/area_theme.gd` | `AreaTheme`: an area's look (ambient, tints, rain, building heights, music) and room list; `.tres` files in `game/run/areas/` |
+| `game/level/exit_door.gd` | `ExitDoor` (map `>`): sealed while enemies remain, opens when the room is cleared |
+| `game/arena/test_arena.gd` | `TestArena`: the sandbox Level (`maps/sandbox.txt`, or `--room=<map>`), adds the demo driver |
+| `game/run/run.gd` | `Run`: plays a run's rooms in order (fades, carries Resolve, pause menu), ends in victory (boss room cleared) or defeat (death) → end screen |
+| `game/run/run_plan.gd` | `RunPlan.make(rng)`: 3 random rooms per area + the boss room, from the run seed |
+| `game/run/rooms/` | Room maps: `slums/`, `rooftops/`, `boss/` (plain text, same legend as the sandbox) |
+| `enemies/warden/` | The Warden boss: `Warden` (sweep, charge, slam + `Shockwave`, phase-2 volley), `WardenData` |
 | `game/arena/maps/sandbox.txt` | The multi-level sandbox map. Edit it directly; `test_sandbox_map.gd` checks it |
 | `game/arena/level_dressing.gd` | `LevelDressing`: facade back wall (skyline + alleys), floor props, foreground silhouettes (Parallax2D); visual only |
 | `game/arena/auto_tile.gd` | `AutoTile`: picks tileset tiles (edges, corners, variants, platform caps) from map neighbours |
@@ -180,7 +213,10 @@ Add or extend a demo scenario in `dev/demo_driver.gd` for new combat features.
 | `tools/art/` | Art tools: `palette.gpl`, `pixelize.py`, `generate_sandbox_art.py` (Python + Pillow, venv in `tools/art/.venv`) |
 | `game/camera/camera_rig.gd` | Follow camera: close pixel-perfect zoom (`target_visible_height`, default 240 px), look-ahead, looks down while falling, trauma shake, overview mode |
 | `game/hazards/spikes.gd` | Spike hazard (example of an always-on hitbox) |
-| `game/boot/` | First scene → test arena for now |
+| `game/boot/` | First scene → title (or `--demo`/`--room`/`--overview` → sandbox, `--run`, `--end=win/lose`) |
+| `ui/title/`, `ui/end/`, `ui/pause/` | Title screen, end screen (stats, run again, feedback link `Game.FEEDBACK_URL`), pause menu (Esc) |
+| `ui/menu/menu.gd` | `Menu`: shared pixel buttons and the drifting city backdrop for menus |
+| `ui/hud/hud_boss_bar.gd` | `HudBossBar`: boss name, health (with a trailing damage ghost) and posture |
 | `ui/hud/hud.gd` | `Hud`: vitals plate, combo counter + ranks, controls panel (fades after `HELP_TIME`, toggle with `help` = H/F1), slow-mo tint, screen flash |
 | `ui/hud/hud_vitals.gd` | `HudVitals`: Resolve pips (diamonds) + Focus bar, drawn in `_draw()` (no textures); shakes and flashes on lost pips |
 | `ui/theme/game_theme.tres` | Project theme (`gui/theme/custom`): the pixel font for every Label, size 8, 1 px drop shadow |
@@ -317,6 +353,22 @@ the reach limits in that section (single jump ≤ 5 tiles up, double jump ≤ 8)
 map is plain text: change `game/arena/maps/sandbox.txt`, run the tests (the map test checks
 borders, markers and footing), then check with `--overview` and a play.
 
+Run rooms (`game/run/rooms/<area>/<name>.txt`, about 64×24 tiles) use the same legend plus
+`?` (random enemy from the area's pool), `W` (the Warden) and `>` (the exit, right side).
+Each needs one `P` and one `>`; `test_run.gd` checks every room. Add a room by writing the
+map and listing its name (no `res://`, no `.txt`) in the area's `.tres`. Try one alone with
+`-- --room=res://game/run/rooms/<area>/<name>.txt`.
+
+### The run and the Warden
+
+`Run` asks `RunPlan` for the rooms (seeded by `RunState`), then loads one `Level` per room.
+The exit opens once the `enemies` group is empty (dead enemies leave it at once). Stats for
+the end screen are kept by `RunState` (kills, executions, freed, best combo, time). The
+Warden's numbers live in `enemies/warden/warden_data.tres`. Its charge and shockwaves are
+tagged `unblockable` (the player can't parry or guard them; they blink red with
+`telegraph(true)`). Executions take `execution_damage` instead of killing it (any enemy
+with `execution_damage` > 0 behaves like this).
+
 ## Tests
 
 - Put tests in `tests/unit/test_<thing>.gd`, `extends TestCase`, methods named `test_...`.
@@ -326,7 +378,7 @@ borders, markers and footing), then check with `--overview` and a play.
 - Test pure logic directly (components, schemas, data rules). For behaviour that needs
   physics, use a demo scenario and check its event log.
 
-## Current status (2026-10-26)
+## Current status (2026-10-27)
 
 **M0 (setup):** done on the Mac. **M1 (combat feel, offline):** Ronin movement incl.
 ledge grab; slash combo; parry/guard; deflect (perfect deflect returns to the shooter);
@@ -335,8 +387,12 @@ Enemies: Hound (parry), Patrol Drone (deflect), Linked Citizen (cut the link; Me
 `Profile.data["mercy"]`), training dummy. Multi-level sandbox map
 (`game/arena/maps/sandbox.txt`) drawn with a code-generated tileset, a 3-layer AI-generated
 parallax city backdrop and rain. Enemies flinch, recoil and burn on hits; machines are cut
-in two by blade kills. Pixel-font HUD with no debug text. 53 unit tests; bot scenarios `combo`, `hound`, `drone`, `ledge`,
-`slam`, `linked`, `ninja`, `brawl` all show the expected events.
+in two by blade kills. Pixel-font HUD with no debug text. **Demo build:** title screen → run of 7 rooms (3 Neon
+Slums, 3 Rain Rooftops, chosen by seed) → the Warden boss → end screen with stats; pause
+menu. 60 unit tests; bot scenarios `combo`, `hound`, `drone`, `ledge`, `slam`, `linked`,
+`ninja`, `brawl`, `warden` and the `--run --autoclear` / `--run --seed=0 --demo=walk` run
+checks all show the expected events. Export presets exist for Web, Windows and macOS; the
+export templates are not installed yet, so no binaries have been built.
 
 Known limitations: Focus is solo-only (uses `Engine.time_scale`); ledges can only be
 grabbed on `WORLD` geometry, not one-way platforms; enemies have no hurt pose of their own
@@ -346,9 +402,11 @@ grabbed on `WORLD` geometry, not one-way platforms; enemies have no hurt pose of
 
 Do these one at a time; each ends with passing tests and a demo log or recording.
 
-1. The **demo build** (PLAN.md section 36: Warden boss, 2 areas, title/end screens, exports).
-   Still open from kill feedback: pooling the effect particles and a kill freeze-frame
-   (PLAN.md section 16).
+1. **Finish the demo for sharing**: install the export templates, build Web/Windows/macOS,
+   fix the web renderer look (see gotchas), set `Game.FEEDBACK_URL`, and playtest a full run
+   by hand (room difficulty, Warden balance). Blade pickups from the original demo plan are
+   not built yet. Still open from kill feedback: pooling the effect particles and a kill
+   freeze-frame (PLAN.md section 16).
 2. **Touch controls v1** (PLAN.md section 15.4) as a `CanvasLayer` scene in `ui/touch/`
    that presses the same input actions (floating stick, Slash/Jump/Dodge/Parry/Focus).
 3. **LAN co-op**: spawn one Player per peer with `MultiplayerSpawner`, sync with

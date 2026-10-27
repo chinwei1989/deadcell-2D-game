@@ -32,6 +32,8 @@ const REACT_KICK := 5.0
 const REACT_SQUASH := 0.22
 const REACT_TILT := 0.18
 const SCRAP_COLOR := Color("4fd1c5")
+## Wind-up blink color for attacks that can't be parried or guarded (dodge or jump them).
+const DANGER_COLOR := Color("ff3a3a")
 const STAGGER_COLOR := Color("4fd1c5")
 ## Extra damage taken while staggered.
 const STAGGER_DAMAGE_MULTIPLIER := 1.5
@@ -60,6 +62,7 @@ var _react_direction: Vector2 = Vector2.ZERO
 var _last_hit: DamageInfo
 var _visual_rng := RandomNumberGenerator.new()
 var _telegraphing: bool = false
+var _danger: bool = false
 var _base_color: Color
 var _posture_bar_width: float = 0.0
 
@@ -142,7 +145,8 @@ func _process(delta: float) -> void:
 		tint = STAGGER_COLOR
 		amount = 0.45
 	elif _telegraphing:
-		# Blink toward white during an attack wind-up.
+		# Blink toward white during an attack wind-up (red: unblockable).
+		tint = DANGER_COLOR if _danger else Color.WHITE
 		amount = 0.3 + 0.3 * sin(Time.get_ticks_msec() * 0.03)
 	if _sprite:
 		var mat := _sprite.material as ShaderMaterial
@@ -180,13 +184,19 @@ func _make_sprite() -> void:
 func _play_animation_for_state() -> void:
 	if state == &"dead":
 		return
-	var anim: StringName = state
-	if not _sprite.sprite_frames.has_animation(anim):
-		anim = ANIMATION_ALIASES.get(state, &"idle")
+	var anim := animation_for_state()
 	if not _sprite.sprite_frames.has_animation(anim):
 		anim = &"idle"
 	if _sprite.animation != anim:
 		_sprite.play(anim)
+
+
+## The sprite animation for the current state: the one named like the state, else an alias.
+## Override for special cases.
+func animation_for_state() -> StringName:
+	if _sprite and _sprite.sprite_frames.has_animation(state):
+		return state
+	return ANIMATION_ALIASES.get(state, &"idle")
 
 
 ## Override in subclasses: movement and attack decisions.
@@ -198,12 +208,15 @@ func set_state(new_state: StringName) -> void:
 	state = new_state
 	state_time = 0.0
 	_telegraphing = false
+	_danger = false
 	if attack_hitbox:
 		attack_hitbox.active = false
 
 
-func telegraph() -> void:
+## Call every frame of a wind-up. unblockable = blink red (the attack ignores parry and guard).
+func telegraph(unblockable: bool = false) -> void:
 	_telegraphing = true
+	_danger = unblockable
 
 
 func face(direction: int) -> void:
@@ -319,8 +332,18 @@ func _find_target() -> Player:
 
 func _execute(info: DamageInfo) -> void:
 	info.executed = true
-	info.killed = true
 	_last_hit = info
+	if data.execution_damage > 0.0:
+		# Bosses survive executions: a big chunk of health, then the fight goes on.
+		Events.enemy_executed.emit(self, info.source)
+		info.killed = health.damage(data.execution_damage)
+		_flash_left = FLASH_TIME
+		_burn_left = BURN_TIME
+		_react_left = REACT_TIME
+		if not info.killed:
+			posture.end_stagger()
+		return
+	info.killed = true
 	Events.enemy_executed.emit(self, info.source)
 	health.damage(health.current)
 
@@ -343,6 +366,7 @@ func _die() -> void:
 	collision_layer = 0
 	hurtbox.set_deferred(&"monitorable", false)
 	remove_from_group(&"targets")
+	remove_from_group(&"enemies") # Remains don't keep a room sealed.
 	died.emit()
 	Events.enemy_killed.emit(self)
 	var push := _last_hit.knockback if _last_hit else Vector2.ZERO

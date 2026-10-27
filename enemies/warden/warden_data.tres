@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="WardenData" format=3]
+
+[ext_resource type="Script" path="res://enemies/warden/warden_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+max_health = 540.0
+max_posture = 140.0
+posture_recovery_delay = 2.0
+posture_recovery_rate = 12.0
+stagger_time = 3.0
+knockback_resistance = 0.95
+move_speed = 70.0
+acceleration = 500.0
+aggro_range = 400.0
+attack_range = 78.0
+windup_frames = 30
+active_frames = 10
+recovery_frames = 34
+attack_resolve_cost = 1.0
+attack_knockback = Vector2(260, -170)
+attack_hit_freeze = 6
+parried_posture_damage = 35.0
+parried_stun = 0.9
+projectile_speed = 170.0
+flinch_frames = 0
+corpse_time = 2.5
+execution_damage = 60.0

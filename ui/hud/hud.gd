@@ -35,6 +35,10 @@ var _flash: ColorRect
 var _slow_motion_tint: ColorRect
 var _focus_active: bool = false
 var _focus_ratio: float = 1.0
+var _boss_bar: HudBossBar
+var _title: VBoxContainer
+var _title_main: Label
+var _title_sub: Label
 
 
 func _ready() -> void:
@@ -63,18 +67,18 @@ func _ready() -> void:
 	count_row.alignment = BoxContainer.ALIGNMENT_END
 	count_row.add_theme_constant_override("separation", 3)
 	_combo_box.add_child(count_row)
-	_combo_count = _label(24, COMBO_COLOR, HORIZONTAL_ALIGNMENT_RIGHT)
+	_combo_count = make_label(24, COMBO_COLOR, HORIZONTAL_ALIGNMENT_RIGHT)
 	count_row.add_child(_combo_count)
-	var hits := _label(8, COMBO_COLOR, HORIZONTAL_ALIGNMENT_LEFT)
+	var hits := make_label(8, COMBO_COLOR, HORIZONTAL_ALIGNMENT_LEFT)
 	hits.text = "HITS"
 	hits.size_flags_vertical = Control.SIZE_SHRINK_END
 	count_row.add_child(hits)
-	_combo_rank = _label(16, RANK_COLOR, HORIZONTAL_ALIGNMENT_RIGHT)
+	_combo_rank = make_label(16, RANK_COLOR, HORIZONTAL_ALIGNMENT_RIGHT)
 	_combo_box.add_child(_combo_rank)
 
-	_help = _make_help()
+	_help = make_controls_panel()
 	add_child(_help)
-	_help_hint = _label(8, DIM, HORIZONTAL_ALIGNMENT_RIGHT)
+	_help_hint = make_label(8, DIM, HORIZONTAL_ALIGNMENT_RIGHT)
 	_help_hint.text = "H  CONTROLS"
 	_help_hint.anchor_left = 1.0
 	_help_hint.anchor_right = 1.0
@@ -87,6 +91,29 @@ func _ready() -> void:
 	_help_hint.modulate.a = 0.0
 	add_child(_help_hint)
 
+	_boss_bar = HudBossBar.new()
+	_boss_bar.anchor_left = 0.5
+	_boss_bar.anchor_right = 0.5
+	_boss_bar.offset_left = -HudBossBar.WIDTH / 2.0 - 4.0
+	_boss_bar.offset_top = 8.0
+	_boss_bar.visible = false
+	add_child(_boss_bar)
+
+	_title = VBoxContainer.new()
+	_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title.set_anchors_preset(Control.PRESET_CENTER)
+	_title.offset_left = -200.0
+	_title.offset_right = 200.0
+	_title.offset_top = -60.0
+	_title.offset_bottom = -10.0
+	_title.alignment = BoxContainer.ALIGNMENT_CENTER
+	_title.modulate.a = 0.0
+	add_child(_title)
+	_title_main = make_label(24, Color("f2a541"), HORIZONTAL_ALIGNMENT_CENTER)
+	_title.add_child(_title_main)
+	_title_sub = make_label(8, Color("b8c7cf"), HORIZONTAL_ALIGNMENT_CENTER)
+	_title.add_child(_title_sub)
+
 	_flash = _full_rect(Color(1, 0.97, 0.88, 0.0))
 	Events.screen_flash.connect(_on_screen_flash)
 
@@ -98,6 +125,34 @@ func bind_player(player: Player) -> void:
 	_vitals.pips = player.resolve.pips
 	_vitals.set_resolve(player.resolve.pips, player.resolve.max_pips)
 	_on_focus_changed(player.focus.seconds, player.focus.max_seconds)
+
+
+## Shows a boss's bar once it engages (bosses emit `engaged`), with a title card.
+func bind_boss(boss: EnemyBase) -> void:
+	_boss_bar.boss = boss
+	_boss_bar.set_title("THE WARDEN" if boss is Warden else String(boss.name).to_upper())
+	if boss.has_signal(&"engaged"):
+		boss.connect(&"engaged", func() -> void:
+			_boss_bar.visible = true
+			show_title("THE WARDEN", "HALCYON'S ENFORCER"), CONNECT_ONE_SHOT)
+	else:
+		_boss_bar.visible = true
+
+
+## Starts with the controls panel hidden (only the first room of a run shows it).
+func hide_controls() -> void:
+	_help_left = 0.0
+	_help.modulate.a = 0.0
+
+
+## A big centered title (area names, boss intros): fades in, holds, fades out.
+func show_title(main: String, sub: String = "", hold: float = 1.8) -> void:
+	_title_main.text = main
+	_title_sub.text = sub
+	var tween := create_tween()
+	tween.tween_property(_title, ^"modulate:a", 1.0, 0.3)
+	tween.tween_interval(hold)
+	tween.tween_property(_title, ^"modulate:a", 0.0, 0.6)
 
 
 func _process(delta: float) -> void:
@@ -156,8 +211,8 @@ func _on_screen_flash(strength: float) -> void:
 	create_tween().tween_property(_flash, ^"color:a", 0.0, 0.18)
 
 
-## Bottom-center panel of key chips: [KEY] ACTION.
-func _make_help() -> PanelContainer:
+## Panel of key chips: [KEY] ACTION (bottom center; the title screen re-centers it).
+static func make_controls_panel() -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := StyleBoxFlat.new()
@@ -191,18 +246,18 @@ func _make_help() -> PanelContainer:
 	for entry in CONTROLS:
 		var chip := HBoxContainer.new()
 		chip.add_theme_constant_override("separation", 3)
-		var key := _label(8, KEY_COLOR, HORIZONTAL_ALIGNMENT_CENTER)
+		var key := make_label(8, KEY_COLOR, HORIZONTAL_ALIGNMENT_CENTER)
 		key.text = str(entry[0])
 		key.add_theme_stylebox_override("normal", key_style)
 		chip.add_child(key)
-		var action := _label(8, ACTION_COLOR, HORIZONTAL_ALIGNMENT_LEFT)
+		var action := make_label(8, ACTION_COLOR, HORIZONTAL_ALIGNMENT_LEFT)
 		action.text = str(entry[1])
 		chip.add_child(action)
 		flow.add_child(chip)
 	return panel
 
 
-func _label(font_size: int, color: Color, align: HorizontalAlignment) -> Label:
+static func make_label(font_size: int, color: Color, align: HorizontalAlignment) -> Label:
 	var label := Label.new()
 	label.horizontal_alignment = align
 	label.add_theme_font_size_override("font_size", font_size)

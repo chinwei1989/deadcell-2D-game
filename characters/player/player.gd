@@ -46,6 +46,8 @@ const FLIP_TIME := 0.36
 var state: State = State.NORMAL
 var facing: int = 1
 var spawn_position: Vector2
+## False in a run: death ends the run instead of respawning (the Run scene takes over).
+var respawns: bool = true
 
 var _state_time: float = 0.0
 var _coyote_left: float = 0.0
@@ -612,7 +614,7 @@ func _state_hurt(delta: float) -> void:
 func _state_dead(delta: float) -> void:
 	velocity = Vector2.ZERO
 	_respawn_left -= delta
-	if _respawn_left <= 0.0:
+	if _respawn_left <= 0.0 and respawns:
 		_respawn()
 
 
@@ -1023,7 +1025,7 @@ func _deflect_projectiles(active_time: float) -> void:
 func _on_hurt(info: DamageInfo) -> void:
 	if state == State.DEAD:
 		return
-	if _is_from_front(info):
+	if _is_from_front(info) and not info.tags.has("unblockable"):
 		if state == State.PARRY and not _past(FrameTime.seconds(tuning.parry_window_frames)):
 			_parry(info)
 			return

@@ -197,6 +197,11 @@ def sfx() -> dict[str, np.ndarray]:
     s["clank"] = mix(metal([410, 730, 1150, 1890], 0.3, 0.05) * 0.7, thump(0.15, 150, 60, 0.04))
     s["scrap_pop"] = mix(crunch(0.3, 3000, 0.07), thump(0.3, 140, 40, 0.08) * 0.6,
                          metal([1700, 2900], 0.2, 0.04) * 0.2)
+    s["warden_roar"] = mix(osc(sweep(95, 60, 1.3) * (1 + 0.04 * osc(23, 1.3)), 1.3, "saw") * attack_decay(1.3, 0.15, 0.5),
+                           lowpass(noise(1.3), sweep(1800, 300, 1.3)) * attack_decay(1.3, 0.1, 0.45) * 0.8,
+                           crush(osc(sweep(190, 120, 1.3), 1.3, "square"), 4) * attack_decay(1.3, 0.2, 0.4) * 0.2)
+    s["door_open"] = mix(metal([660, 990], 0.6, 0.18) * 0.5, osc(sweep(300, 900, 0.4), 0.4) * attack_decay(0.4, 0.05, 0.15) * 0.4,
+                         bandpass(noise(0.4), 2000, 7000) * attack_decay(0.4, 0.02, 0.1) * 0.4)
     RNG.bit_generator.state = rng_state
     return {name: fade_edges(normalize(sound)) for name, sound in s.items()}
 
@@ -285,12 +290,57 @@ def music_loop() -> np.ndarray:
     return normalize(stereo, 0.8).reshape(-1)
 
 
+def warden_loop() -> np.ndarray:
+    """'Warden': the boss loop, 124 BPM, 8 bars of Dm – Bb – C – A, driving bass and drums."""
+    bpm = 124
+    beat = 60.0 / bpm
+    bars = 8
+    loop_len = int(SR * beat * 4 * bars)
+    total = loop_len + SR * 2
+    left = np.zeros(total)
+    right = np.zeros(total)
+    chords = [["D2", "A3", "D4", "F4"], ["A#1", "F3", "A#3", "D4"], ["C2", "G3", "C4", "E4"], ["A1", "E3", "A3", "C#4"]]
+
+    def add(signal: np.ndarray, start_s: float, pan: float = 0.0, gain: float = 1.0) -> None:
+        i = int(SR * start_s)
+        end = min(i + signal.size, total)
+        left[i:end] += signal[: end - i] * gain * (1 - max(pan, 0))
+        right[i:end] += signal[: end - i] * gain * (1 + min(pan, 0))
+
+    for bar in range(bars):
+        chord = chords[(bar // 2) % 4]
+        start = bar * 4 * beat
+        root = note_freq(chord[0])
+        for e in range(8):  # Driving eighth-note bass, octave jumps on the off-beats.
+            f = root * (2 if e % 2 else 1)
+            note = lowpass(osc(f, beat * 0.48, "saw"), 600) * attack_decay(beat * 0.48, 0.005, 0.12)
+            add(note, start + e * beat / 2, 0.0, 0.28)
+        length = 4 * beat
+        for k, n in enumerate(chord[1:]):  # Dark stabs on 1 and the "and" of 2.
+            for at in (0.0, 1.5):
+                stab = crush(lowpass(osc(note_freq(n), beat * 0.6, "square"), 1400), 8) * decay(beat * 0.6, 0.12)
+                add(stab, start + at * beat, -0.4 + 0.4 * k, 0.05)
+        pad = lowpass(osc(note_freq(chord[1]) / 2, length + 1.0, "saw"), 500) * attack_decay(length + 1.0, 0.8, 2.0)
+        add(pad, start, 0.0, 0.08)
+        for b in range(4):  # Four-on-the-floor kick, snare on 2 and 4, sixteenth hats.
+            add(thump(0.3, 130, 40, 0.07), start + b * beat, 0.0, 0.45)
+            if b % 2:
+                snare = mix(bandpass(noise(0.2), 1200, 6000) * decay(0.2, 0.06), thump(0.12, 220, 160, 0.04) * 0.5)
+                add(snare, start + b * beat, 0.1, 0.22)
+            for q in range(4):
+                hat = highpass(noise(0.04), 8000) * decay(0.04, 0.01)
+                add(hat, start + b * beat + q * beat / 4, 0.3, 0.05 if q % 2 else 0.08)
+    stereo = np.stack([seamless(left, loop_len), seamless(right, loop_len)], axis=1)
+    return normalize(stereo, 0.8).reshape(-1)
+
+
 def main() -> None:
     for name, sound in sfx().items():
         write(ROOT / "audio" / "sfx" / f"{name}.wav", sound)
     write(ROOT / "audio" / "sfx" / "rain_loop.wav", rain_loop(), stereo=True)
     write(ROOT / "audio" / "music" / "neon_rain.wav", music_loop(), stereo=True)
-    print("wrote", len(list((ROOT / "audio" / "sfx").glob("*.wav"))), "sound effects and 1 music loop")
+    write(ROOT / "audio" / "music" / "warden.wav", warden_loop(), stereo=True)
+    print("wrote", len(list((ROOT / "audio" / "sfx").glob("*.wav"))), "sound effects and 2 music loops")
 
 
 if __name__ == "__main__":
